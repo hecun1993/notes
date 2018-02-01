@@ -1,0 +1,12 @@
+pip3 install -i https://pypi.douban.com/simple/ virtualenv -- 指定安装来自豆瓣源
+
+1. 安装虚拟环境的方法
+
+virtualenv py3 -- 会在当前路径创建虚拟环境
+cd py3/bin -- 在bin目录中
+source activate -- 进入虚拟环境
+deactivate -- 退出虚拟环境
+
+virtualenv -p /usr/bin/python py2
+-p 指定创建的虚拟环境的Python版本
+

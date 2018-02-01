@@ -1,0 +1,29 @@
+打包springboot项目:
+1. 添加provided依赖, 只在编译时使用tomcat的依赖, 因为打包成war包, 发布到服务器上, 服务器有tomcat
+所以, 要用provided
+        <dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<scope>provided</scope>
+		</dependency>
+2. 添加maven-war-plugin插件
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-war-plugin</artifactId>
+            <configuration>
+                <failOnMissingWebXml>false</failOnMissingWebXml>
+            </configuration>
+        </plugin>
+3. <packaging>war</packaging>
+
+4.
+@SpringBootApplication
+public class Application extends SpringBootServletInitializer {
+	@Override
+	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+		return application.sources(Application.class);
+	}
+	public static void main(String[] args) throws Exception {
+		SpringApplication.run(Application.class, args);
+	}
+}

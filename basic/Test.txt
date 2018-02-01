@@ -27,3 +27,43 @@ TPS:
 显示层(web Android IOS H5)
 逻辑控制层(Api)
 数据存储层(mysql mongodb redis)
+
+ab -c 10 -n 100 www.baidu.com
+-c 必须在 -n 前面
+-c是并发数
+-n是总共发送多少个请求
+
+每秒查询率QPS是对一个特定的查询服务器在规定时间内所处理流量多少的衡量标准，
+在因特网上，作为域名系统服务器的机器的性能经常用每秒查询率来衡量。
+原理：每天80%的访问集中在20%的时间里，这20%时间叫做峰值时间
+
+公式：( 总PV数 * 80% ) / ( 每天秒数 * 20% ) = 峰值时间每秒请求数(QPS)
+机器：峰值时间每秒QPS / 单台机器的QPS = 需要的机器
+
+问：每天300w PV 的在单台机器上，这台机器需要多少QPS？
+答：( 3000000 * 0.8 ) / (86400 * 0.2 ) = 139 (QPS)
+问：如果一台机器的QPS是58，需要几台机器来支持？
+答：139 / 58 = 3
+
+pv是指页面被浏览的次数，比如你打开一网页，那么这个网站的pv就算加了一次；
+tps是每秒内的事务数，比如执行了dml操作，那么相应的tps会增加；
+qps是指每秒内查询次数，比如执行了select操作，相应的qps会增加。
+
+jmeter命令行
+1. 在windows上设置好jmx文件
+2. 命令行执行: ./jmeter.sh -n -t xxx.jmx -l result.jtl
+    -n 不使用图形界面 -t 脚本 -l 输出结果
+3. 把生成的result.jtl导入jmeter中查看结果
+
+nohup java -jar miaosha.jar &
+tail -f nohup.out
+./jmeter/bin/jmeter.sh -n -t miaosha.jmx -l result.jtl
+
+redis的压测
+
+redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 100000 100个并发 100000个请求
+redis-benchmark -h 127.0.0.1 -p 6379 -q -d 100 存取大小为100字节的数据包
+redis-benchmark -h 127.0.0.1 -p 6379 -t set, lpush -q -n 100000
+
+命令行压测:
+    nohup java -jar -server -Xmx2048m -Xms2048m miaosha.jar &

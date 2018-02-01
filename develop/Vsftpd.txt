@@ -46,5 +46,4 @@ pasv_max_port=62000
 如果要看到文件列表，需要设置
 setsebool allow_ftpd_full_access=1 
 
-
 然后在浏览器中访问ftp://192.168.193.100

@@ -1,7 +1,11 @@
+ps -ef | grep redis 查看进程
+netstat -nap | grep 5672 查看端口
+
 CPU使用率：
     一段时间内CPU的使用状况，从这个指标可以看出某一段时间内CPU资源被占用的情况。
 Load Average：
     某一段时间内，CPU正在处理以及等待CPU处理的进程数的之和。Load Average是从另一个角度来体现CPU的使用状态的。
+
 
 tar -zxvf zookeeper-3.4.6.tar.gz [解压缩后的文件名]
 	z 指定压缩包的压缩格式
@@ -75,3 +79,15 @@ IO优化中，这样的估算公式可能更适合：
 因为很显然，线程等待时间所占比例越高，需要越多线程。线程CPU时间所占比例越高，需要越少线程。
 比如平均每个线程CPU运行时间为0.5s，而线程等待时间（非CPU运行时间，比如IO）为1.5s，CPU核心数为8，那么根据上面这个公式估算得到：((0.5+1.5)/0.5)*8=32。
 这个公式进一步转化为：最佳线程数目 = （线程等待时间与线程CPU时间之比 + 1）* CPU数目
+
+创建用户
+	useradd -d /usr/geely -m geely
+	passwd geely
+
+	vim /etc/sudoers
+	查找root, 在下方给geely加一样的sudo权限
+
+make -j 4 用4核来编译, 加快编译速度
+
+查看cpu核数
+cat /proc/cpuinfo | grep processor

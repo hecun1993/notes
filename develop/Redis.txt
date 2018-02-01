@@ -1,42 +1,9 @@
-redis在终止服务的时候, 不会持久化, 只有在./redis-cli shutdown的时候才会持久化.
-也可以人为触发save命令, 来持久化
-
-redis-server --port
-redis-cli -p
-
-select 1
-
-info
-
-flushdb 清除当前的keyspace
-
-flushall
-
-dbsize
-
-save
-
-quit
-
-ttl 看还剩余的过期时间
-
-expire a 10
-
-type b 看键的类型
-
-setex c 100 c
-
-getset a aa 返回的是旧的值
-
-setnx a a 如果a的键已经存在, 则不能设置, 否则可以设置
-
-
-redis cookie jackson filter实现单点登录
+注意点:
+	redis在强行终止服务的时候, 不会持久化, 只有在./redis-cli shutdown的时候才会持久化. 也可以人为触发save命令, 来持久化
 
 一 基于springboot的注解
 
 0. 添加缓存不能影响正常业务逻辑。所以要使用try catch
-1. 在大流量的情况下, 缓存可以有效提高数据的读取速度.
 2. 命中 失效 更新
 3. 在启动类上加@EnableCaching的注解
 4. 在查询方法上加@Cacheable(cacheNames = "product", key = "123") 要返回的实体类继承序列化接口
@@ -105,58 +72,6 @@ redis持久化方案
 
 三 redis其他
 
-1. 使用redis分布式锁:
-	
-	setnx key value: 如果存在key-value, 什么都不做, 否则, 增加这个key
-	getset key value: 先返回之前的旧值, 然后把新值设置进去
-
-	//以下代码为了避免死锁
-	//1. 假设A线程拿到了锁, 锁已经过期了. 现在进来了B, C线程, 第一个if进不去, 后续得到的currentValue是a, 
-	//2. B线程先进入if判断, 得到的oldValue为a, 然后set后oldValue成为了b, 然后内层的if判断就通过, 解锁. 也就是B线程拿到了锁
-	//3. C线程再进入第二个if判断, 得到的oldValue为b, 然后set后oldValue成为了c, 但在内层的if判断中, oldValue(b)和currentValue(a)不相等, 就拿不到锁.
-	//4. 从而解锁了.
-
-	public class RedisLock {
-
-		@Autowired
-		private StringRedisTemplate redisTemplate;
-
-		//加锁
-		//key是商品id, value是过期时间
-		public boolean lock(String key, String value) {
-			
-			if(redisTemplate.opsForValue().setIfAbsent(key, value)) {
-				return true;
-			}
-
-			String currentValue = redisTemplate.opsForValue().get(key);
-	        //如果锁过期（value(加锁时的时间 + 超时时间)小于当前时间，则锁过期. 可以进入这个条件判断，有可能return true，解开了死锁）
-	        if (!StringUtils.isEmpty(currentValue)
-	                && Long.parseLong(currentValue) < System.currentTimeMillis()) {
-	            String oldValue = redisTemplate.opsForValue().getAndSet(key, value);
-	            if (!StringUtils.isEmpty(oldValue)
-	                    && oldValue.equals(currentValue)) {
-	                return true;
-	            }
-	        }
-
-	        return false;
-		}
-
-		//解锁
-		public void unlock(String key, String value) {
-	        try {
-	            String currentValue = redisTemplate.opsForValue().get(key);
-	            if (!StringUtils.isEmpty(currentValue)
-	                    && currentValue.equals(value)) {
-	                redisTemplate.opsForValue().getOperations().delete(key);
-	            }
-	        } catch (Exception e) {
-	            log.error("解锁异常");
-	        }
-	    }
-	}
-
 2. redis的性能: 基于内存的; 单进程单线程的; KV数据库.
 
 	2.1 单进程单线程好处
@@ -170,22 +85,39 @@ redis持久化方案
 		数据结构简单，对数据操作也简单
 		使用多路 I/O 复用模型
 
-同步阻塞
-	用户线程通过系统调用read发起IO读操作，由用户空间转到内核空间。内核等到数据包到达后，然后将接收的数据拷贝到用户空间，完成read操作。
-同步非阻塞
-	同步非阻塞IO是在同步阻塞IO的基础上，将socket设置为NONBLOCK。这样做用户线程可以在发起IO请求后可以立即返回。
-	由于socket是非阻塞的方式，因此用户线程发起IO请求时立即返回。但并未读取到任何数据，用户线程需要不断地发起IO请求，直到数据到达后，才真正读取到数据，继续执行。
-	即用户需要不断地调用read，尝试读取socket中的数据，直到读取成功后，才继续处理接收的数据。整个IO请求的过程中，虽然用户线程每次发起IO请求后可以立即返回，但是为了等到数据，仍需要不断地轮询、重复请求，消耗了大量的CPU的资源。
+redis一致性算法
 
-I/O多路复用: 单个线程，通过记录跟踪每个I/O流(sock)的状态，来同时管理多个I/O流
+将数据和用来缓存的机器进行相同的hash操作, 然后放在同一个hash环形空间中.
+当移除或者添加用来缓存的机器时, 数据的重新分配很少
 
-	定义: 用户首先将需要进行IO操作的socket添加到select中，然后阻塞等待select系统调用返回。当数据到达时，socket被激活，select函数返回。用户线程正式发起read请求，读取数据并继续执行。
-	使用select以后最大的优势是用户可以在一个线程内同时处理多个socket的IO请求。用户可以注册多个socket，然后不断地调用select读取被激活的socket，即可达到在同一个线程内同时处理多个IO请求的目的。而在同步阻塞模型中，必须通过多线程的方式才能达到这个目的。
+问题: 
+	会有ip倾斜性, 也就是用来缓存的机器都集中在环形空间的一侧, 这样导致很多数据会集中在一个缓存机器上
 
-	1. 这里“多路”指的是多个网络连接，“复用”指的是复用同一个线程。
-	2. 多路 I/O 复用模型是利用select、poll、epoll可以同时监察多个流的 I/O 事件的能力
-	3. 在空闲的时候，会把当前线程阻塞掉，当有一个或多个流有I/O事件时，就从阻塞态中唤醒，于是程序就会轮询一遍所有的流（epoll是只轮询那些真正发出了事件的流），并且只依次顺序的处理就绪的流，这种做法就避免了大量的无用操作。
-	4. nginx中使用了epoll，是基于事件驱动模型的，由一个或多个事件收集器来收集或者分发事件，epoll就属于事件驱动模型的事件收集器，将注册过的事件中发生的事件收集起来
+解决: 虚拟节点
+	增加很多个虚拟节点, 对每个虚拟节点进行hash操作, 来映射到真实的节点上(用虚拟节点对真实节点进行放大)
+
+
+修改redis.conf
+改绑定的可以访问本redis的ip, 由127.0.0.1改成0.0.0.0
+改允许后台执行 daemonize yes
+改redis的密码, requirepass 123456
+
+重启redis, 连上redis-cli后, 使用shutdown save命令, 然后再重新启动redis-server ./redis.conf
+
+此时需要先auth 123456, 然后再get key1
+
+redis-server ./redis.conf
+
+
+redis主从同步
+
+	在6380里: 
+	slaveof 127.0.0.1 6379
+	只能读, 不能写
+
+监听redis的日志命令 monitor
+	可以查看spring session框架都做了什么
+
 
 ## 一致性哈希算法
 #### 场景一

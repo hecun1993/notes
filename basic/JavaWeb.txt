@@ -1,0 +1,258 @@
+#### Websocket协议
+- http协议, 客户端和服务端传递数据, 在同一时刻, 数据传递方向只能有一个, 要么发送数据, 要么接收数据.
+- websocket协议, 在同一个连接, 同一个时刻, 可以既发送数据, 也接收数据. 
+- websocket是一个长连接协议, 不需要每次传输数据前都建立连接. 所以延迟低, 而且不需要每次携带一些连接信息, 传递的数据少.
+
+#### JavaWeb的请求过程
+`把访问意图，包装成一个HTTP请求(request)，发给对应的服务器，或者用django, springboot开发的web程序。然后处理这个HTTP请求，返回相应的HTTP响应`
+
+`建立连接，发送请求，返回响应，关闭连接`
+
+#### HTTP&HTTPS
+- http是超文本传输协议，信息是明文传输（如果攻击者截取了在浏览器和服务器之间的传输报文，就可以读懂其中的信息），是无状态的。
+- https是由具有安全性的ssl加密传输协议和HTTP协议一同构建的，需要到CA申请证书来验证服务器的身份，因此可进行加密传输和身份认证。  
+- http和https使用的端口不一样，前者是80，后者是443。
+
+```
+http请求建立在一次tcp连接的基础上
+    一次tcp连接至少会产生一次或多次http请求
+    http1: 一对一
+    http1.1: 顺序一对多
+    http2: 多路复用一对多
+```
+
+#### URL（统一资源定位符）和URI（统一资源标识符）
+- URI可以分为URL（具有位置信息）和URN（统一资源命名符，具有名字）或同时具备locators和names特性。URN作用就好像一个人的名字，URL就像一个人的地址。
+- 换句话说：URN确定了东西的身份，URL提供了找到它的方式。  
+- URI是以一种抽象的，高层次概念定义统一资源标识，而URL和URN则是具体的资源标识的方式。URL和URN都是URI的一种
+
+### HTTP协议
+- HTTP是超文本传输协议, 建立在TCP/IP协议基础上, 主要实现客户端与服务器端之间的通信
+- 包含两类报文：请求报文和响应报文。
+- HTTP请求报文: 由请求头, 请求行、空行和请求数据4个部分组成
+
+#### 请求报文
+1. 请求行 GET /index.html HTTP/1.1
+```
+* get方式不适合传输私密数据; 不适合传输大量数据; 
+* 如果数据是英文字母/数字，原样发送;
+* 如果是空格，转换为+;
+* 如果是中文/其他字符，则直接把字符串用BASE64加密，得出如：%E4%BD%A0%E5%A5%BD; 其中％XX中的XX为该符号以16进制表示的ASCII。
+
+* post方法将请求参数封装在HTTP请求数据中, 以名称/值的形式出现，可以传输大量数据，不会显示在URL中。
+```
+
+#### get和post的区别
+- 不在于携带数据的多少, 那是浏览器厂商规定的.
+- get是`幂等性`的, 从服务端获取数据, 无论获取多少次, 得到的结果是一样的
+- post不是`幂等性`的. 向服务端提交数据, 目的是让服务端数据发生变化. `如果让服务端的数据产生变化, 那么就应该用post而不是get`
+
+2. 请求头
+- 请求头部由关键字/值对组成，每行一对.
+- 关键字和值用英文冒号“:”分隔。请求头部通知服务器有关于客户端请求的信息
+```
+User-Agent：产生请求的浏览器类型。
+Accept：客户端可识别的内容类型列表。
+Host：请求的主机名，允许多个域名同处一个IP地址，即虚拟主机。
+```
+
+3. 空行
+- 最后一个请求头之后是一个空行，发送回车符和换行符，通知服务器以下不再有请求头
+
+4. 请求数据
+
+#### 响应报文
+```
+1xx：指示信息--表示请求已接收，继续处理。
+2xx：成功--表示请求已被成功接收、理解、接受。
+3xx：重定向--要完成请求必须进行更进一步的操作。
+4xx：客户端错误--请求有语法错误或请求无法实现。
+5xx：服务器端错误--服务器未能实现合法的请求。
+```
+
+### Servlet
+- Servlet与动态网页相关(根据不同时间,不同用户,显示不同内容的页面)
+- Servlet本质上就是一个Java程序
+- Servlet是服务器端程序, 运行在Web服务器中的Servlet容器(比如Tomcat)中.
+- Servlet主要功能是提供请求/响应的Web服务模式,可以动态生成Web内容.
+- Servlet针对每个请求创建一个线程来执行, 也就是说, `每个请求都在一个单独的线程中`
+
+```java
+public class MyServlet extends HttpServlet {
+    doPost(){}
+    doGet(){}
+}
+```
+
+#### Servlet的生命周期
+`Servlet运行在容器中,没有main方法,整个生命周期都是由容器来控制的.`
+	
+- servlet的生命周期包括加载, 实例化, 初始化, 处理请求, 服务结束。javax.servlet.Servlet接口的init(),service()和destroy()方法表达。
+- 加载Servlet的class---->实例化Servlet----->调用Servlet的init完成初始化---->响应请求（Servlet的service方法）----->Servlet容器关闭时(Servlet的destory方法)
+- Servlet启动时，开始加载servlet的class; Servlet被服务器实例化后，容器运行其init方法; 请求到达时执行其service方法，自动运行与请求对应的doXXX方法（doGet，doPost）等; 当服务器决定将实例销毁时(服务器关闭), 调用其destroy方法。
+- 在Servlet的生命周期中,容器只调用一次的方法是:init()和destroy()
+
+#### Servlet中的两种跳转方式
+`为了划分模块, 会让不同的Servlet实现不同的功能, 就要保证Servlet之间可以互相跳转`
+- forward: 是服务器端的转向, 客户端浏览器的地址栏不会显示转向后的地址
+整个定向的过程用的是同一个Request, 该Request信息会被带到新的Servlet中, 所以,forward是在服务器端的,一次请求中完成的.
+- redirect: 客户端浏览器会获取到跳转后的地址, 然后重新发起请求, 因此浏览器会显示跳转后的地址. `这种方式比forward多了一次网络请求, 效率低.`
+
+#### JSP
+- JSP页面是嵌入了JAVA代码的HTML文件,就是一个特殊的Servlet,最终也会被转换为Servlet.
+- Servlet没有内置对象, JSP中有内置对象, 但必须通过HttpServletRequest, HttpServletResponse, HttpServlet对象得到.
+
+```
+JSP的九大内置对象:
+    pageContext:对JSP页面的所有对象的访问
+    request:客户端的请求信息被封装到request对象中.getParameter()可以获得用户提交的表单数据
+    session
+    application:可以存放全局变量,实现数据共享.其生命周期与服务器一致.服务器启动,对象就被创建,服务器停止,其生命周期结束
+    response
+    out
+    config
+    page
+    exception	
+```
+
+#### Cookie和Session
+- Cookie通过在客户端记录信息确定用户身份，Session通过在服务器端记录信息确定用户身份。但是Session的实现依赖于Cookie, sessionId(session的唯一标识需要存放在客户端)
+- cookie数据存放在客户的浏览器上，session数据放在服务器上。
+- cookie不是很安全，别人可以分析存放在本地的cookie并进行cookie欺骗
+   考虑到安全应当使用session。
+- session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能,考虑到减轻服务器性能方面，应当使用cookie。
+- 单个cookie保存的数据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie。
+
+```	
+- 将登陆信息等重要信息存放为SESSION
+- 其他信息如果需要保留，可以放在COOKIE中，比如购物车
+- 购物车最好使用cookie，但是cookie是可以在客户端禁用的，这时候我们要使用cookie+数据库的方式实现，当从cookie中不能取出数据时，就从数据库获取。
+```
+
+#### 网络攻击
+
+    `CSRF攻击`
+
+    1.用户C打开浏览器，访问受信任网站A，输入用户名和密码请求登录网站A;
+    2.在用户信息通过验证后，网站A产生Cookie信息并返回给浏览器，此时用户登录网站A成功，可以正常发送请求到网站A;
+    3.用户未退出网站A之前，在同一浏览器中，打开一个TAB页访问网站B;
+    4.网站B接收到用户请求后，返回一些攻击性代码，并发出一个请求要求访问网站A;
+    5.浏览器在接收到这些攻击性代码后，根据网站B的请求，在用户不知情的情况下携带Cookie信息，向网站A发出请求。网站A并不知道该请求其实是由B发起的，所以会根据用户C的Cookie信息以C的权限处理该请求，导致来自网站B的恶意代码被执行。
+    6.csrf的攻击之所以会成功是因为服务器端身份验证机制可以通过Cookie保证一个请求是来自于某个用户的浏览器，但无法保证该请求是用户允许的。因此，预防csrf攻击简单可行的方法就是在客户端网页上添加随机数，在服务器端进行随机数验证，以确保该请求是用户允许的。
+
+#### tomcat和session:
+
+    1. 对Tomcat而言，Session是一块在服务器开辟的内存空间，其存储结构为ConcurrentHashMap；
+    2. Http协议是一种无状态协议，即每次服务端接收到客户端的请求时，都是一个全新的请求，服务器并不知道客户端的历史请求记录；
+    3. Session的主要目的就是为了弥补Http的无状态特性。简单的说，就是服务器可以利用session存储客户端在同一个会话期间的一些操作记录；
+
+1、服务器如何判断客户端发送过来的请求是属于同一个会话？
+答：用Session id区分，Session id相同的即认为是同一个会话，在Tomcat中Session id用JSESSIONID表示；
+
+2、服务器、客户端如何获取Session id？Session id在其之间是如何传输的呢？
+答：服务器第一次接收到请求时，开辟了一块Session空间（创建了Session对象），同时生成一个Session id，并通过响应头的Set-Cookie：“JSESSIONID=XXXXXXX”命令，向客户端发送要求设置cookie的响应；
+客户端收到响应后，在本机客户端设置了一个JSESSIONID=XXXXXXX的cookie信息，该cookie的过期时间为浏览器会话结束；
+接下来客户端每次向同一个网站发送请求时，请求头都会带上该cookie信息（包含Session id）；
+然后，服务器通过读取请求头中的Cookie信息，获取名称为JSESSIONID的值，得到此次请求的Session id；
+
+ps：服务器只会在客户端第一次请求响应的时候，在响应头上添加Set-Cookie：“JSESSIONID=XXXXXXX”信息，接下来在同一个会话的第二第三次响应头里，是不会添加Set-Cookie：“JSESSIONID=XXXXXXX”信息的；
+而客户端是会在每次请求头的cookie中带上JSESSIONID信息；
+
+#### tomcat中的session是如何实现的
+
+    Tomcat中一个会话对应一个session，其实现类是StandardSession，查看源码，可以找到一个attributes成员属性，即存储session的数据结构，为ConcurrentHashMap，支持高并发的HashMap实现；
+	    protected Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
+
+    那么，tomcat中多个会话对应的session是由谁来维护的呢？ManagerBase类，查看其代码，可以发现其有一个sessions成员属性，存储着各个会话的session信息
+	    protected Map<String, Session> sessions = new ConcurrentHashMap<String, Session>();
+
+    客户端每次的请求，tomcat都会在HashMap中查找对应的key为JSESSIONID的Session对象是否存在
+
+先看doGetSession方法中的如下代码，这个一般是第一次访问的情况，即创建session对象，session的创建是调用了ManagerBase的createSession方法来实现的; 
+另外，注意response.addSessionCookieInternal方法，该方法的功能就是上面提到的往响应头写入“Set-Cookie”信息；最后，还要调用session.access方法记录下该session的最后访问时间，因为session是可以设置过期时间的；
+	session = manager.createSession(sessionId);
+
+    if ((session != null) && (getContext() != null) && getContext().getServletContext(). getEffectiveSessionTrackingModes().contains(SessionTrackingMode.COOKIE)) {
+            Cookie cookie = ApplicationSessionCookieConfig.createSessionCookie(context, session.getIdInternal(), isSecure());
+            response.addSessionCookieInternal(cookie);
+    }
+
+    if (session == null) {
+        return null;
+    }
+
+    session.access();
+    return session;
+
+再看doGetSession方法中的如下代码，这个一般是第二次以后访问的情况，通过ManagerBase的findSession方法查找session，其实就是利用map的key从ConcurrentHashMap中拿取对应的value，这里的key即requestedSessionId，也即JSESSIONID，同时还要调用session.access方法，记录下该session的最后访问时间；
+
+    if (requestedSessionId != null) {
+        try {
+                session = manager.findSession(requestedSessionId);
+        } catch (IOException e) {
+                session = null;
+        }
+        if ((session != null) && !session.isValid()) {
+                session = null;
+        }
+        if (session != null) {
+            session.access();
+                return (session);
+        }
+    }
+
+建立会话之后, 后续的request中的sessionid(请求头), cookie中的sessionid(在浏览器开发者工具中找到的cookie)和服务器端session.getId()拿到的是想同的sessionid.
+
+注意: tomcat重启之后, session就会改变
+
+
+单点登录 -- 就是把存在session中的用户信息改成存在redis中            
+
+    当我们调用login.do时, 会把当前的jsessionid(也可以是uuid字符串)写入的cookie中(首先给一个名字, 比如token, 其次要设置cookie的path, 比如是.happymmall.com, 再设置有效期). 接着, 就要把这个当前的jsessionid(也可以是uuid字符串)作为key, user作为value写入redis中.
+
+    CookieUtil.writeLoginToken(httpServletResponse,session.getId());
+    RedisShardedPoolUtil.setEx(session.getId(), JsonUtil.obj2String(response.getData()),Const.RedisCacheExtime.REDIS_SESSION_EXTIME);
+
+    String loginToken = CookieUtil.readLoginToken(httpServletRequest);
+    String userJsonStr = RedisShardedPoolUtil.get(loginToken);
+
+    ==> 在我们对网站的任何操作之后, 只要在登录环境下, 都应该把token的有效期重置为30min
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        //1. 强转
+        HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        //2. 拿到loginToken
+        String loginToken = CookieUtil.readLoginToken(httpServletRequest);
+
+        //3. 更新session过期时间
+        if (StringUtils.isNotEmpty(loginToken)) {
+            //判断logintoken是否为空或者""；
+            //如果不为空的话，符合条件，继续拿user信息
+
+            String userJsonStr = RedisShardedPoolUtil.get(loginToken);
+            User user = JsonUtil.string2Obj(userJsonStr, User.class);
+            if (user != null) {
+                //如果user不为空，则重置session的时间，即调用expire命令
+                RedisShardedPoolUtil.expire(loginToken, Const.RedisCacheExtime.REDIS_SESSION_EXTIME);
+            }
+        }
+
+        filterChain.doFilter(servletRequest, servletResponse);
+    }
+    
+当我们把session.setAttribute("current_user", user); 修改为用redis存储用户信息之后, (key是Jsessionid): 
+
+tomcat启动之后, request中的Jsessionid会改变, 也就是HttpSession httpSession作为参数后, httpSession.getSession()在tomcat重启之后, 会改变.
+
+所以, 如果我们把Jsessionid当做key存在redis中, 如果tomcat重启, 则无法通过它获得用户的信息, 更重要的是, 当有两台tomcat时, 另外一台tomcat也无法获取用户的信息.
+
+我们要在服务端, 向客户端写一个cookie, 是登录时的jsessionid.
+
+cookie的setPath, 看包含关系来判断, 不同的path可以共享哪个cookie
+
+用nginx负载均衡两台tomcat, 每次轮询到相同的tomcat时, 其jsessionid都不相同.
+
+
+
+

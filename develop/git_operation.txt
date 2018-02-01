@@ -1,0 +1,47 @@
+git clone 一份origin的代码到本地，准备进行开发
+
+fork 
+	复制一份代码到自己的账号，作为自己的远程仓库
+
+git remote add self git@git.elenet.me:cun.he/esmart.git 
+	给自己的远程仓库起名字为self，并建立起本地仓库和self仓库的联系。
+git remote add origin https://github.com/hecun1993/studygit.git
+
+git checkout -b etrace
+	在本地创建创建一个etrace分支，并切换到etrace分支上。
+
+注意.gitignore文件
+
+git remote 查看远程库的信息
+
+git add .
+git commit -m "commit to etrace"
+	把代码提交到本地的etrace分支
+
+更新本地develop分支上的代码，因为在这段时间，别人可能进行提交，所以要把最新的代码同步到本地的develop分支。
+	先切换分支
+	git checkout develop
+	再拉下代码来
+	git pull --rebase origin develop
+
+切换回etrace分支，
+git checkout etrace
+git rebase develop
+	在etrace分支上，把etrace分支上的代码合并到develop上
+
+git add .
+git rebase --continue
+
+git push self etrace
+	把本地etrace分支上的代码提交到self远程仓库中
+
+在网页上进行pull request请求，提交到origin的develop分支上
+或者
+git push origin develop
+
+克隆制定分支
+git clone -b dev https://xxx.git
+
+查看分支
+git branch
+git branch -r

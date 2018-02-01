@@ -22,17 +22,6 @@ nginx是一个开源, 高性能, 可靠的HTTP中间件, 代理服务
 		limit_conn_module: 连接频率限制
 		limit_req_module: 请求频率限制
 
-		http请求建立在一次tcp连接的基础上
-		一次tcp连接至少会产生一次或多次http请求
-		http1: 一对一
-		http1.1: 顺序一对多
-		http2: 多路复用一对多
-
-		ab -c 10 -n 100 www.baidu.com
-		-c 必须在 -n 前面
-		-c是并发数
-		-n是总共发送多少个请求
-
 	对比apache:
 		apache是多线程的，但是某个线程的通信是阻塞的，面对并发访问，就必须开很多的线程，但是线程切换很耗时耗资源. 线程比进程更不安全，但通信效率高
 
@@ -83,3 +72,82 @@ nginx是一个开源, 高性能, 可靠的HTTP中间件, 代理服务
 
 在nginx.conf中的server节点下加上    include vhost/*.conf;
 然后在nginx.conf同级目录创建vhost文件夹, 然后在里面创建各种配置文件.
+
+轮询
+权重
+ip hash(同一个用户访问同一台机器)
+url hash(同一个服务访问同一台机器)
+fair(后端服务器响应时间短的优先分配)
+
+upstream www.happymmall.com {
+	server 127.0.0.1:8080;
+	server 127.0.0.1:9080;
+
+	server 127.0.0.1:8080 weight=15;
+	server 127.0.0.1:9080 weight=10;
+
+	ip_hash;
+	server 127.0.0.1:8080 weight=15;
+	server 127.0.0.1:9080 weight=10;
+
+	server 127.0.0.1:8080 weight=15;
+	server 127.0.0.1:9080 weight=10;
+	hash $request_uri;
+
+	server 127.0.0.1:8080 weight=15;
+	server 127.0.0.1:9080 weight=10;
+	fair;
+}
+
+单机部署多个tomcat
+
+	修改/etc/profile, 增加tomcat环境变量
+
+	export CATALINA_BASE=${tomcat1's path}
+	export CATALINA_HOME=${tomcat1's path}
+	export TOMCAT_HOME=${tomcat1's path}
+	export CATALINA_2_BASE=${tomcat2's path}
+	export CATALINA_2_HOME=${tomcat2's path}
+	export TOMCAT_2_HOME=${tomcat2's path}
+
+	第一个tomcat不变
+	第二个tomcat, 打开catalina.sh, 找到# OS specific..., 在这行下面添加配置
+	export CATALINA_BASE=$CATALINA_2_BASE
+	export CATALINA_HOME=$CATALINA_2_HOME
+	再打开server.xml, 修改三个端口, 比第一个tomcat都加1000
+	server port; connector port; connector port
+
+	然后就可以分别启动两个tomcat了
+
+
+使用tomcat + nginx搭建集群
+
+	启动两个tomcat
+	修改hosts文件
+		127.0.0.1 www.imooc.com
+
+	启动nginx, 默认安装路径是/usr/local/nginx/sbin/nginx.sh
+	编辑nginx/conf/nginx.conf, 在http节点下增加
+	include vhosts/*.conf;
+	增加www.imooc.com.conf
+
+	upstream www.imooc.com {
+		server www.imooc.com:8080 weight=1;
+		server www.imooc.com:9080 weight=1;
+	}
+
+	server {
+		listen 80;
+		autoindex on;
+		server_name imooc.com www.imooc.com;
+		access_log /usr/local/nginx/logs/access.log combined;
+		index index.html index.htm index.jsp index.php;
+
+		location / {
+			proxy_pass http:www.imooc.com;
+			add_header Access-Control-Allow-Origin *;
+		}
+	}
+
+	重启nginx
+	./nginx -s reload

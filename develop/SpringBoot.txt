@@ -156,154 +156,137 @@ spring boot自动加载的源码分析
 	- 这样，就会自动配置redis了。
 	- springboot启动的时候，会实例化SpringApplication对象，在这个过程中，会加载META-INF/spring.factories文件，在这个文件中定义了类似于RedisAutoConfiguration等一系列的类，这些类都会被加载到spring容器中。
 
-1. 命令行启动: java -jar target/xx.jar --spring.profiles.active=prod
-
-2. ResponseEntity<Object>: 可以替代ResponseBody。
-	使用之后，所有的返回值都是Json形式，而且会强制要求使用HttpStatus状态码信息。
+1. 命令行启动: java -jar target/xx.jar -Dmaven.skip.test=true --spring.profiles.active=prod
 	
 3. pom.xml
 	在pom文件中引入spring-boot-starter-parent，可以提供依赖管理，在申明其他依赖的时候，可以不需要添加版本号。
-	spring-boot-starter-web：包含了spring mvc和tomcat等
 
-4. @SpringBootApplication = @SpringBootConfiguration @EnableAutoConfiguration @ConponentScan
+4. @SpringBootApplication = @SpringBootConfiguration @EnableAutoConfiguration @ComponentScan
 	- 该注解相当于三个注解
 	- @SpringBootConfiguration: 将该类作为springboot的配置文件类
 	- @EnableAutoConfiguration: 程序启动时，自动加载springboot默认的配置
-	- @ConponentScan: 程序启动时，自动扫描当前包及子包下的所有类
-
-5. 参数绑定：(@RequestBody)
-	springmvc接收JSON类型的参数数据
-	注意: 
-		@RequestBody: 处理的是ajax提交来的json数据!!!!!
-		1、常用来处理content-type是application/json类型。
-		2、通过@requestBody可以将请求体中的JSON字符串绑定到相应的bean上，当然，也可以将其分别绑定到对应的字符串上。
-　　　　　　　　例如说以下情况：
-		　　　　$.ajax({
-		　　　　　　　　url:"/login",
-		　　　　　　　　type:"POST",
-		　　　　　　　　data:'{"userName":"admin","pwd","admin123"}',
-		　　　　　　　　content-type:"application/json charset=utf-8",
-		　　　　　　　　success:function(data){
-		　　　　　　　　　　alert("request success!");
-		　　　　　　　　}
-		　　　　});
-		　　　　@requestMapping("/login")
-		　　　　public void login(@requestBody String userName,@requestBody String pwd){
-		　　　　　　System.out.println(userName+" ："+pwd);
-		　　　　}
-　　　　    		这种情况是将JSON字符串中的两个变量的值分别赋予了两个字符串
-			
-			如果有一个User类，拥有如下字段：
-				String userName; String pwd;
-			那么上述参数可以改为以下形式：@requestBody User user 
-			这种形式会将JSON字符串中的值赋予user中对应的属性上
-　　　　    	需要注意的是，JSON字符串中的key必须对应user中的属性名，否则是请求不过去的。
+	- @ComponentScan: 程序启动时，自动扫描当前包及子包下的所有类
 	
-@ResponseBody注解等价于: response.getWriter.write(JSONObject.fromObject(user).toString());
-
-@ModelAttribute：
-	获取POST请求的FORM表单数据
-	<form method="post" action="hao.do">
-	    a: <input id="a" type="text" name="a"/>
-	    b: <input id="b" type="text" name="b"/>
-	    <input type="submit" value="Submit" />
-	</form>
-	
-	public class Pojo {
-	    private String a;
-	    private int b;
-	}
-	    
-    @RequestMapping(method = RequestMethod.POST) 
-	public String processSubmit(@ModelAttribute("pojo") Pojo pojo) { 
-	    return "hello World"; 
-	}
-
-@EnableScheduling : 开启对计划任务的支持(定时器) 
-	需要有注解@Scheduled配合，类的方法中有@Scheduled注解，则该类必须加上@Component注解
-
-	@Service
-	public class ScheduledTaskService {
-	    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-
-	    @Scheduled(fixedRate = 5000) //通过@Scheduled声明该方法是计划任务，使用fixedRate属性每隔固定时间执行
-	    public void reportCurrentTime(){
-	        System.out.println("每隔5秒执行一次 "+dateFormat.format(new Date()));
-	    }
-
-	    @Scheduled(cron = "0 07 20 ? * *" ) //使用cron属性可按照指定时间执行，本例指的是每天20点07分执行；
-	    public void fixTimeExecution(){
-	        System.out.println("在指定时间 "+dateFormat.format(new Date())+" 执行");
-	    }
-	}
-
-通过byTYPE注入（@Autowired）、byNAME注入（@Resource）的方式获取Bean；
-
-@EnableConfigurationProperties({WiselySettings.class,Wisely2Settings.class})  
-
-@RequestParam("start") @DateTimeFormat(pattern="yyyy-MM-dd hh:mm:ss") Date start,
-	前端传入的参数是字符串，但service的方法需要的数据类型是Date类型，可以加注解解决：
+@DateTimeFormat
+	@RequestParam("start") @DateTimeFormat(pattern="yyyy-MM-dd hh:mm:ss") Date start,
+		前端传入的参数是字符串，但service的方法需要的数据类型是Date类型，可以加注解解决：
 
 SpringBoot默认Servlet容器是基于Tomcat8的
 
-打包springboot项目:
-	@SpringBootApplication
-	public class Application extends SpringBootServletInitializer {
-	    @Override
-	    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-	        return application.sources(Application.class);
-	    }
-	    public static void main(String[] args) throws Exception {
-	        SpringApplication.run(Application.class, args);
-	    }
-	}
 
-xml配置时: 
-	<mvc:annotation-driven/>，它的作用是注册DefaultAnnotationHandlerMapping和AnnotationMethodHandlerAdapter两个bean，解决了@Controller注解使用的前提，不注册这两个bean的情况下是无法使用@Controller注解的；
-	<context:annotation-config/>，则是对指定的包进行扫描，同时将带有@Controller注解的bean进行注册；
+@EnableScheduling : 开启对计划任务的支持(定时器) 
 
-@Autowired的使用：推荐对构造函数进行注释, 而不是对成员变量进行注释
+    需要有注解@Scheduled配合，类的方法中有@Scheduled注解，则该类必须加上@Component注解
 
-原来是
+    @Service
+    public class ScheduledTaskService {
+        private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+
+        @Scheduled(fixedRate = 5000) //通过@Scheduled声明该方法是计划任务，使用fixedRate属性每隔固定时间执行
+        public void reportCurrentTime(){
+            System.out.println("每隔5秒执行一次 "+dateFormat.format(new Date()));
+        }
+
+        @Scheduled(cron = "0 07 20 ? * *" ) //使用cron属性可按照指定时间执行，本例指的是每天20点07分执行；
+        public void fixTimeExecution(){
+            System.out.println("在指定时间 "+dateFormat.format(new Date())+" 执行");
+        }
+    }
+
+@ModelAttribute
+
+请求的FORM表单数据
+    <form method="post" action="hao.do">
+        a: <input id="a" type="text" name="a"/>
+        b: <input id="b" type="text" name="b"/>
+        <input type="submit" value="Submit" />
+    </form>
+
+    public class Pojo {
+        private String a;
+        private int b;
+    }
+        
+    @RequestMapping(method = RequestMethod.POST) 
+    public String processSubmit(@ModelAttribute("pojo") Pojo pojo) { 
+        return "hello World"; 
+    }
+
+@RequestBody
+    springmvc接收JSON类型的参数数据
+    
+    处理的是ajax提交来的json数据!!!!!
+    1、常用来处理content-type是application/json类型。
+    2、通过@requestBody可以将请求体中的JSON字符串绑定到相应的bean上，当然，也可以将其分别绑定到对应的字符串上。
+    　　　　　　　　例如说以下情况：
+    　　　　$.ajax({
+    　　　　　　　　url:"/login",
+    　　　　　　　　type:"POST",
+    　　　　　　　　data:'{"userName":"admin","pwd","admin123"}',
+    　　　　　　　　content-type:"application/json charset=utf-8",
+    　　　　　　　　success:function(data){
+    　　　　　　　　　　alert("request success!");
+    　　　　　　　　}
+    　　　　});
+
+    　　　　@requestMapping("/login")
+    　　　　public void login(@RequestBody String userName, @RequestBody String pwd){
+    　　　　　　System.out.println(userName + "：" + pwd);
+    　　　　}
+            这种情况是将JSON字符串中的两个变量的值分别赋予了两个字符串
+        
+        如果有一个User类，拥有如下字段：
+            String userName; String pwd;
+        那么上述参数可以改为以下形式：@requestBody User user 
+        这种形式会将JSON字符串中的值赋予user中对应的属性上
+    　　需要注意的是，JSON字符串中的key必须对应user中的属性名，
+
 @Autowired
-private UserService userService;
 
-建议写成
-private final UserService userService;
+    @Autowired的使用：推荐对构造函数进行注解, 而不是对成员变量进行注解
 
-@Autowired
-private UserController(UserService userService) {
-    this.userService = userService;
-}
+    @Autowired是根据类型注入的, @Resource是根据名字注入的
 
-@Autowired 可以对成员变量、方法以及构造函数进行注释。原因如下:
+    原来是
+    @Autowired
+    private UserService userService;
 
-@Autowired
-private User user;
-private String school;
+    建议写成
+    private final UserService userService;
 
-public UserAccountServiceImpl() {
-    this.school = user.getSchool();
-}
+    @Autowired
+    private UserController(UserService userService) {
+        this.userService = userService;
+    }
 
-这段代码会报错. 因为Java类会先执行构造方法，然后再给注解了@Autowired 的user注入值，
-但在构造方法中要有user对象, 此时还没有注入, 所以在执行构造方法的时候，就会报错。
+    @Autowired 可以对成员变量、方法以及构造函数进行注释。原因如下:
 
-改正: 使用构造器注入
+    @Autowired
+    private User user;
+    private String school;
 
-private User user;
-private String school;
+    public UserAccountServiceImpl() {
+        this.school = user.getSchool();
+    }
 
-@Autowired
-public UserAccountServiceImpl(User user) {
-    this.user = user;
-    this.school = user.getSchool();
-}
+    这段代码会报错. 因为Java类会先执行构造方法，然后再给注解了@Autowired 的user注入值，
+    但在构造方法中要有user对象, 此时还没有注入, 所以在执行构造方法的时候，就会报错。
 
-可以看出，使用构造器注入的方法，可以明确成员变量的加载顺序。
+    改正: 使用构造器注入
 
-Java变量的初始化顺序为：
-静态变量或静态语句块–>实例变量或初始化语句块–>构造方法–>@Autowired
+    private User user;
+    private String school;
 
-@Autowired本身就是单例模式，只会在程序启动时执行一次，即使不定义final也不会初始化第二次，可能是为了防止，在程序运行的时候，又执行了一遍构造函数；或者是更容易让人理解的意思，加上final只会在程序启动的时候初始化一次，并且在程序运行的时候不会再改变。
+    @Autowired
+    public UserAccountServiceImpl(User user) {
+        this.user = user;
+        this.school = user.getSchool();
+    }
+
+    可以看出，使用构造器注入的方法，可以明确成员变量的加载顺序。
+
+    Java变量的初始化顺序为：
+    静态变量或静态语句块–>实例变量或初始化语句块–>构造方法–>@Autowired
+
+    @Autowired本身就是单例模式，只会在程序启动时执行一次，即使不定义final也不会初始化第二次，可能是为了防止，在程序运行的时候，又执行了一遍构造函数；或者是更容易让人理解的意思，加上final只会在程序启动的时候初始化一次，并且在程序运行的时候不会再改变。
 

@@ -1,0 +1,37 @@
+0. 安装git并配置用户名和邮箱
+
+https://github.com/git/git/releases?after=v2.9.1
+yum -y install zlib-devel openssl-devel cpio expat-devel gettext-devel curl-devel perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
+
+配置用户名和密码, 在提交代码的记录上会展示
+git config --global user.name "hecun93"
+git config --global user.email "hecun93@gmail.com"
+
+git config --global core.autocrlf false
+git config --global core.quotepath off
+
+查看配置信息
+git config --list
+
+1. 建立电脑和远程仓库的访问通道
+
+ssh-keygen -t rsa -C "hecun93@163.com"
+ssh-add ~/.ssh/id_rsa
+cat ~/.ssh/id_rsa.pub
+
+2. 把.ssh文件夹中的id_rsa.pub复制到github中.
+
+3. 在github中创建项目, 复制在github中的项目路径.
+
+4. 在电脑上创建项目文件夹, 执行以下命令
+
+git init 创建版本库，多一个.git的目录
+git status 查看哪些文件发生了变化
+git add .
+git commit -am ""
+
+5. 与远程仓库进行关联
+
+git remote add origin https://xxx.git
+
+

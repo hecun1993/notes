@@ -1,63 +1,3 @@
-public interface BeanFactory  
-{  
-    public Object getBean(String id);  
-}  
-
-public class ClassPathXmlApplicationContext implements BeanFactory  
-{  
-    //定义一个filePath变量  
-    private String filePath;  
-      
-    //首先定义Map 目的来存放生产的对象  
-    Map<String, Object> map = new HashMap<String, Object>();  
-      
-    public ClassPathXmlApplicationContext(String filePath)  
-    {  
-        //获取配置文件路径  
-        this.filePath = filePath;  
-        //初始化  
-        try  
-        {  
-            this.readFile();  
-        }  
-        catch (Exception e)  
-        {  
-            e.printStackTrace();  
-        }  
-    }  
-      
-    private void readFile()  
-        throws DocumentException, InstantiationException, IllegalAccessException, ClassNotFoundException  
-    {  
-        //接下来，用dom4j来解析，，，dom4j下载地址：http://sourceforge.net/projects/dom4j  
-        SAXReader reader = new SAXReader();  
-        //获取根节点  
-        Document document = reader.read(this.getClass().getClassLoader().getResourceAsStream(filePath));  
-        //获取bean所有的元素  
-        List<Element> list = document.selectNodes("/beans/bean");  
-        for (int i = 0; i < list.size(); i++)  
-        {  
-            //获取bean的id  
-            String id = list.get(i).attributeValue("id");  
-            //获取bean的class也就是类的路径  
-            String classpath = list.get(i).attributeValue("class");  
-            //利用反射获取对象  有三种方式，，，我们通过类的全名+包名来生成  
-            Object object = Class.forName(classpath).newInstance();  
-              
-            //放到我们定义的map里 key =id ,vlaue =获取的对象，为下面getBean（）取对象提供条件  
-            map.put(id, object);  
-        }  
-    }  
-      
-    @Override  
-    public Object getBean(String id)  
-    {  
-        //这里根据id来获取对于的对象既可  
-        return map.get(id);  
-    }  
-      
-}  
-
 ApplicationContext和BeanFactory在获取对象的区别:
     BeanFactory factory = new XmlBeanFactory(new ClassPathResource("com/hsp/ioc/beans.xml"));
     - applicationContext: 只要我们实例化容器，那么所有的对象都会被实例化(前提是将bean配置成单例模式)
@@ -75,9 +15,6 @@ Spring的IOC动态注入
 3. Bean对象在Spring实现中是以BeanDefinition来描述的
 
 Spring IoC容器对Bean定义资源的载入是从refresh()函数开始的，refresh()是一个模板方法，refresh()方法的作用是：在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。refresh的作用类似于对IoC容器的重启，在新建立好的容器中对容器进行初始化，对Bean定义资源进行载入
-
-spring整合web项目
-    启动时创建ServletContext对象, 监听器监听到之后, 加载spring的配置文件, 创建其中的对象, 放在ServletContext中.
 
 Spring源码之IoC容器的加载
 
@@ -174,7 +111,8 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
     }
 }
 
-#### AOP的概念
+AOP的概念
+
 1. AOP指面向切面编程。通过预编译方式，或者主要是运行期间的动态代理技术来实现功能。它可以使业务逻辑各部分之间的耦合度降低，提高程序的可重用性。
 2. 采取横向抽取机制，取代了传统纵向继承体系重复性代码  
 具体指，比如原来要为Service中的add和delete两个方法添加事务的操作，而且不能修改原先的代码。那么我们只能另外写一个类A来继承Service类，然后分别在add和delete方法的前后，加事务开启和事务提交。  
@@ -193,136 +131,7 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
     目标类：需要被代理的类。  
     代理类：Proxy  
 
-
-JDK动态代理 对“装饰者”设计模式 简化。使用前提：必须有接口
-    1.目标类：接口 + 实现类
-    2.切面类：用于存通知 MyAspect
-    3.工厂类：编写工厂生成代理
-    4.测试
-
-//目标类
-public interface UserService {
-    public void addUser();
-    public void updateUser();
-    public void deleteUser();
-}
-
-//切面类
-public class MyAspect {
-    public void before(){
-        System.out.println("鸡首");
-    }
-    
-    public void after(){
-        System.out.println("牛后");
-    }
-}
-
-//工厂类
-public class MyBeanFactory {
-    
-    public static UserService createService(){
-        //1 目标类
-        final UserService userService = new UserServiceImpl();
-        //2 切面类
-        final MyAspect myAspect = new MyAspect();
-        
-        /* 
-         *  3 生成代理类：将目标类（切入点）和 切面类（通知） 结合 --> 切面
-         *  Proxy.newProxyInstance
-         *      参数1：loader，类加载器，动态代理类是在运行时创建，任何类都需要类加载器将其加载到内存。
-         *          一般情况：当前类.class.getClassLoader();
-         *          也可以：目标类的!实例!.getClass().getClassLoader();
-         *      参数2：Class[] interfaces 代理类需要实现的所有接口
-         *          方式1：目标类实例.getClass().getInterfaces();注意：只能获得自己接口，不能获得父元素接口
-         *          方式2：new Class[]{UserService.class}   
-         *      参数3：InvocationHandler，这是一个接口，必须进行实现类，一般采用匿名内部
-         *          提供 invoke 方法，!代理类的每一个方法执行时，都将调用一次invoke!
-         *              参数31：Object proxy ：代理对象
-         *              参数32：Method method : 代理对象当前执行的方法的描述对象（反射）
-         *                  执行方法名：method.getName()
-         *                  执行方法：method.invoke(目标对象，实际参数)
-         *              参数33：Object[] args :方法实际参数
-         * 
-         */
-        UserService proxService = (UserService)Proxy.newProxyInstance(
-            MyBeanFactory.class.getClassLoader(), 
-            userService.getClass().getInterfaces(), 
-            new InvocationHandler() {
-                @Override
-                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                    
-                    //前执行
-                    myAspect.before();
-                    
-                    //执行目标类的方法，有返回值，也就是addUser的返回值，是null
-                    Object obj = method.invoke(userService, args);
-                    
-                    //后执行
-                    myAspect.after();
-                    
-                    //返回方法的返回值
-                    return obj;
-                }
-            }
-        );
-        return proxService;
-    }
-}
-
-//测试类
-@Test
-public void demo01(){
-    UserService userService = MyBeanFactory.createService();
-    userService.addUser();
-    userService.updateUser();
-    userService.deleteUser();
-}
-
-=======
-
-cglib代理:
-    public class MyBeanFactory {
-        public static UserServiceImpl createService(){
-            //1 目标类
-            final UserServiceImpl userService = new UserServiceImpl();
-            //2切面类
-            final MyAspect myAspect = new MyAspect();
-            
-            // 3.代理类 ，采用cglib，底层创建目标类的子类
-            //3.1 核心类
-            Enhancer enhancer = new Enhancer();
-            //3.2 确定父类
-            enhancer.setSuperclass(userService.getClass());
-            /* 3.3 设置回调函数, MethodInterceptor接口 等效 jdk中的 InvocationHandler接口
-             *  intercept() 等效 jdk  invoke()
-             *      参数1、参数2、参数3：和invoke一样
-             *      参数4：methodProxy 方法的代理
-             */
-            enhancer.setCallback(new MethodInterceptor() {
-                @Override
-                public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
-                    //前
-                    myAspect.before();
-                    
-                    //执行目标类的方法
-                    Object obj = method.invoke(userService, args);
-                    //执行代理类的父类（其实就是目标类）中的方法，和上面一行的效果等价，可以不写。
-                    methodProxy.invokeSuper(proxy, args);
-                    
-                    //后
-                    myAspect.after();
-                    
-                    return obj;
-                }
-            });
-            
-            //3.4 创建代理
-            UserServiceImpl proxService = (UserServiceImpl) enhancer.create();
-            
-            return proxService;
-        }
-    }
+=========
 
 springmvc执行流程
     1. 每一个请求都会先发给DispatcherServlet，然后由其负责请求的分发，给相应的HandlerMapping处理器映射器，然后根据请求的url，找到对应的处理器，生成处理器对象，返回给DispatcherServlet。
@@ -349,19 +158,6 @@ Model(接口)和ModelAndView之间的区别:
     Model只需要设置数据, 然后以字符串形式返回视图即可.
         model.addAttribute("item", item);
         return "itemEdit";
-
-重定向和转发    
-    重定向后浏览器地址栏变更为重定向的地址，
-    重定向相当于执行了新的request和response，所以之前的请求参数都会丢失
-    如果要指定请求参数，需要在重定向的url后面添加 ?itemId=1 这样的请求参数
-
-    转发后浏览器地址栏还是原来的请求地址，
-    转发并没有执行新的request和response，所以之前的请求参数都存在
-
-struts2和springmvc的区别
-    1、  springmvc的入口是一个servlet即前端控制器，而struts2入口是一个filter过滤器。  
-    2、  springmvc是基于方法开发(一个url对应一个方法)，请求参数传递到方法的形参，可以设计为单例或多例(建议单例)，struts2是基于类开发，传递参数是通过类的属性，只能设计为多例。  
-    3、  struts采用值栈存储请求和响应的数据，通过OGNL存取数据，springmvc通过参数解析器是将request请求内容解析，并给方法形参赋值，将数据和视图封装成ModelAndView对象，最后又将ModelAndView中的模型数据通过request域传输到页面。Jsp视图解析器默认使用jstl。
 
 =============
 

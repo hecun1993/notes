@@ -1,0 +1,64 @@
+注意:
+    当我们依赖一个a.jar时，如果a.jar依赖b.jar，那么只需要早pom中声明对a.jar的依赖即可，b.jar会被Maven自动加载进来。
+    
+    编译 测试 运行 需要不同的classpath
+
+    compile：编译依赖范围。如果没有指定，默认使用该依赖范围。
+        使用此依赖范围时，对于编译、测试、运行都有效。例如：spring-core，编译、测试、运行时都需要使用该依赖。
+    test：测试依赖范围。只对测试classpath有效。
+        例如：JUnit，它只在编译测试代码以及运行测试的时候才需要，编译和运行classpath时无法使用此依赖。
+    provided：已提供依赖范围。对于编译和测试时有效，但在运行时无效。
+        例如：servlet-api，编译和测试项目的时候需要该依赖，但运行时，由于容器已经提供，就不需要Maven重复的引入。
+    runtime：运行时依赖。编译时无效，对于测试和运行有效。
+        例如：JDBC驱动实现，编译时只需要JDK提供的JDBC接口，只有在执行测试和运行时才需要实现上述接口的具体JDBC驱动。
+    system：系统依赖范围。同provided。
+        使用该依赖时必须通过systemPath元素显式地指定依赖文件路径。主要用于依赖本地的、且Maven仓库之外的类库文件。
+
+maven环境隔离
+
+    1. 在pom.xml文件中配置
+    <build>
+        <resources>
+                <resource>
+                        <directory>src/main/resources.${deploy.type}</directory>
+                        <excludes>
+                                <exclude>*.jsp</exclude>
+                        </excludes>
+                </resource>
+                <resource>
+                        <directory>src/main/resources</directory>
+                </resource>
+        </resources>
+
+        <plugins></plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <deploy.type>dev</deploy.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>beta</id>
+            <properties>
+                <deploy.type>beta</deploy.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <deploy.type>prod</deploy.type>
+            </properties>
+        </profile>
+    </profiles>
+
+    2. 在resources下建立resources.beta/dev/prod, 把各自环境中的配置信息文件放入各自文件夹之中. 比如datasource.properties, logback.xml, mmall.properties, zfbinfo.properties
+
+    3. 启动
+        mvn clean package -Dmaven.skip.test=true -Pdev
+        打包一个dev环境的war包
