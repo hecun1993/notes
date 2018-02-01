@@ -1,0 +1,47 @@
+pip3 install -i https://pypi.douban.com/simple/ virtualenv -- 指定安装来自豆瓣源
+
+1. 第一种安装虚拟环境的方法
+
+virtualenv py3 -- 会在当前路径创建虚拟环境
+cd py3/bin -- 在bin目录中
+source activate -- 进入虚拟环境
+deactivate -- 退出虚拟环境
+
+virtualenv -p /usr/bin/python py2
+-p 指定创建的虚拟环境的Python版本
+
+2. 第二种安装虚拟环境的方法
+
+pip3 install virtualenvwrapper 安装虚拟环境管理工具
+
+安装完成后需要设置环境变量:
+
+先vim /Library/Frameworks/Python.framework/Versions/3.6/bin/virtualenvwrapper.sh
+改变VIRTUALENVWRAPPER_PYTHON=/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+
+sudo find / -name virtualenvwrapper.sh
+vim ~/.bashrc
+export WORKON_HOME=$HOME/OtherProjects/python/virtualenv
+source /Library/Frameworks/Python.framework/Versions/3.6/bin/virtualenvwrapper.sh
+sourcr ~/.bashrc
+
+安装完成后, 运行workon 就会列出所有的虚拟环境
+
+mkvirtualenv py3-2
+mkvirtualenv --python=/usr/bin/python py2-2
+会自动进入这个虚拟环境
+
+deactivate 就会退出该虚拟环境
+
+进入某一虚拟环境: workon py3-2
+
+node --version
+npm 包管理工具
+但速度太慢
+用淘宝提供的cnpm
+
+打开前端项目, 进入文件夹
+cnpm install
+
+安装结束后, 运行
+cnpm run dev

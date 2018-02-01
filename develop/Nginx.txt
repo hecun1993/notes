@@ -1,0 +1,85 @@
+中间件:
+	安全
+	请求转发
+	负载均衡
+	http的缓存服务
+
+nginx是一个开源, 高性能, 可靠的HTTP中间件, 代理服务
+
+	IO多路复用epoll
+		nginx是多进程的，是异步非阻塞的，多个描述符的I/O操作都能在一个线程内并发交替地顺序完成. 这里的复用, 指的是复用同一个线程.
+	轻量级:
+		功能模块少, 代码模块化
+	CPU亲和:
+		把cpu核心和nginx工作进程绑定, 也就是把每个worker进程固定在一个cpu内核上, 减少切换cpu核的消耗
+	master和worker进程
+		其中有一个master进程，有多个worker进程（根据电脑的核数，在nginx.conf中配置）
+		工作时，客户端首先和master连接，然后master负责分配任务给worker
+			每个worker进程独立，避免了锁竞争的开销
+			高可用, 如果一个worker失效, 其他worker可以持续提供服务
+			
+	nginx的模块:
+		limit_conn_module: 连接频率限制
+		limit_req_module: 请求频率限制
+
+		http请求建立在一次tcp连接的基础上
+		一次tcp连接至少会产生一次或多次http请求
+		http1: 一对一
+		http1.1: 顺序一对多
+		http2: 多路复用一对多
+
+		ab -c 10 -n 100 www.baidu.com
+		-c 必须在 -n 前面
+		-c是并发数
+		-n是总共发送多少个请求
+
+	对比apache:
+		apache是多线程的，但是某个线程的通信是阻塞的，面对并发访问，就必须开很多的线程，但是线程切换很耗时耗资源. 线程比进程更不安全，但通信效率高
+
+安装:
+
+确认系统网络
+	ping www.baidu.com
+	确认yum可用 
+		yum list | grep gcc
+	确认关闭iptables规则
+		iptables -L 查看规则
+		iptables -F 关闭规则
+		iptables -t nat -L
+		iptables -t nat -F
+	确认停用selinux
+		getenforce
+		setenforce 0
+
+	yum -y install gcc zlib zlib-devel pcre-devel openssl openssl-devel 
+	yum -y install gcc gcc-c++ autoconf pcre pcre-devel make automake
+	yum -y install wget httpd-tools vim
+
+	/etc/yum.repos.d/nginx.repo
+
+	[nginx]
+	name=nginx repo
+	baseurl=http://nginx.org/packages/centos/7/$basearch/
+	gpgcheck=0
+	enabled=1
+
+	yum install nginx
+
+	nginx
+	nginx -s reload
+
+	nginx -t -c /etc/nginx/nginx.conf
+	检查配置文件是否正确
+
+	nginx -s reload -c /etc/nginx/nginx.conf
+	重新启动nginx 
+
+	ps aux | grep nginx
+	ps ef|grep nginx
+	查看nginx是否启动成功
+
+	netstat -ntpl 查看端口占用
+	kill -9 $pid
+
+在nginx.conf中的server节点下加上    include vhost/*.conf;
+然后在nginx.conf同级目录创建vhost文件夹, 然后在里面创建各种配置文件.

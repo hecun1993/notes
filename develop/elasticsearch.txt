@@ -1,0 +1,208 @@
+不包含事务特性
+
+安装elasticsearch
+
+直接解压, 启动即可, 在9200端口
+sh ./bin/elasticsearch
+
+安装elasticsearch-head
+
+从github上克隆
+npm install
+npm run start
+在9100端口启动
+
+但这是两个进程, 有跨域问题, 需要在es/config/elasticsearch.yml文件的末尾加上
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+然后在后台启动es
+./bin/elasticsearch -d
+
+集群搭建: 三个节点, 一个master, 两个slave
+首先对master, 在elasticsearch.yml的最后增加:
+cluster.name: wali
+node.name: master
+node.master: true
+
+network.host: 127.0.0.1
+
+接着对slave进行配置, 在elasticsearch.yml的最后加:
+cluster.name: wali
+node.name: slave1
+
+network.host: 127.0.0.1
+http.port: 8200
+
+discovery.zen.ping.unicast.hosts: ["127.0.0.1"]
+
+剩余的slave节点配置方式, 都相同.
+
+索引: 含有相同属性的文档集合 -- database
+	A索引: 消费者数据
+	B索引: 产品数据
+	通过小写字母来识别, 通过索引, 对文档数据进行crud操作
+类型: 索引可以定义一个或多个类型 -- table
+	通常定义有相同字段的文档为一个类型
+文档: 可以被索引的基本数据单位 -- 一行记录
+	比如一个用户的基本信息, 一篇文章的数据, 是es中最小的存储单位
+
+分片: 每个索引都有多个分片, 每个分片都是一个Lucene索引
+	提高搜索效率
+备份: 拷贝一份分片就完成了分片的备份
+	提高可用性
+默认创建5个分片, 1个备份
+分片数量只能在创建索引时指定, 不能修改, 备份数量可以修改
+
+api基本格式:
+http://ip:port/索引/类型/文档id
+
+mappings信息如果为空, 则说明是非结构化索引
+
+创建一个people索引:
+PUT: 127.0.0.1:9200/people
+
+{
+	"settings": {
+		"number_of_shards": 3,
+		"number_of_replicas": 1
+	},
+	"mappings": {
+		"man": {
+			"properties": {
+				"name" : {
+					"type": "text"
+				},
+				"country": {
+					"type": "keyword"
+				},
+				"age": {
+					"type": "integer"
+				},
+				"date": {
+					"type": "date",
+					"format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+				}
+			}
+		},
+		"woman": {
+
+		}
+	}
+}
+
+插入:
+指定文档id插入
+127.0.0.1/people/man/1 PUT
+{
+	"name": "wali",
+	"country": "China",
+	"age": 30,
+	"date": "1987-03-07"
+}
+
+自动产生文档id插入
+127.0.0.1/people/man POST
+
+{
+	"name": "wali2",
+	"country": "China",
+	"age": 30,
+	"date": "1987-03-07"
+}
+
+修改
+/people/man/1/_update POST
+
+{
+	"doc": {
+		"name": "wali2"
+	}
+}
+或者用脚本方式
+{
+	"script": {
+		"lang": "painless",
+		"inline": "ctx_source.age += 10"
+	}
+}
+{
+	"script": {
+		"lang": "painless",
+		"inline": "ctx_source.age = params.age"
+		"params": {
+			"age": 100
+		}
+	}
+}
+
+删除
+/people/man/1 DELETE
+/people DELETE
+
+查询
+/book/novel/1 GET
+
+/book/_search POST
+{
+	"query": {
+		"match_all": {} //查询全部数据
+	},
+	"from": 1,
+	"size": 1 //返回的数据的条数
+}
+
+{
+	"query": {
+		"match": {
+			"title": "ES"
+		} 
+	}
+}
+
+{
+	"query": {
+		"match": {
+			"title": "ES"
+		} 
+	},
+	"sort": [
+		{"publish_date": {"order": "desc"}} //指定排序方式
+	]
+}
+
+聚合查询
+{
+	"aggs": {
+		"group_by_word_count": {
+			"terms": {
+				"field": "word_count"
+			}
+		},
+		"group_by_publish_date": {
+			"terms": {
+				"field": "publish_date"
+			}
+		} //就会有两组聚合信息
+	}
+}
+
+{
+	"aggs": {
+		"grades_word_count": {
+			"stats": {
+				"field": "word_count"
+			}
+		} //显示词频的最小最大平均等信息
+	}
+}
+
+es的分词的查询: /_analyze?analyzer=standard&pretty=true&text=well,wali
+
+/xunwu/house/_search?explain=true POST body中加查询条件
+来看查询的一些性能指标
+
+优化搜索:
+
+//加上了权重, 搜索优化点1!	
+//搜索优化点2! es只需要查出一些关键字段, 比如houseId, 不需要全部查出
+
