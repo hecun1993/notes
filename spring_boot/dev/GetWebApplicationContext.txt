@@ -1,0 +1,23 @@
+#### 在springmvc中获得ServletContext
+    1.
+        WebApplicationContext webApplicationContext = ContextLoader.getCurrentWebApplicationContext();    
+        ServletContext servletContext = webApplicationContext.getServletContext(); 
+
+    2.
+        ServletContext servletContext=request.getSession().getServletContext();   
+
+#### 从servletContext获得WebApplicationContext
+    方式一：  
+    WebApplicationContext webApplicationContext =   
+            (WebApplicationContext)servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);  
+    方式二：  
+    WebApplicationContext webApplicationContext   
+                    =WebApplicationContextUtils.getWebApplicationContext(ServletContext sc);  
+    其中 方式二：  
+        servletContext sc 可以具体换成 ServletConfig.getServletContext() 或者 this.getServletContext() 或者 request.getSession().getServletContext();    
+
+#### 在spring容器中获得request
+    ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();  
+    HttpServletRequest request = attributes.getRequest();  
+    //页面请求路径  
+    String URL = request.getRequestURL().toString();  

@@ -1,0 +1,156 @@
+@RequestHeader: 获取请求头的注解 
+    @GetMapping(path = "/html/demo/header")
+    public String htmlHeader(@RequestHeader(value = "Accept") String acceptHeader, HttpServletRequest request) {
+        return "<html><body>Request 'Accept' header value : " + acceptHeader + " </body></html>";
+    }
+
+@DateTimeFormat
+	@RequestParam("start") @DateTimeFormat(pattern="yyyy-MM-dd hh:mm:ss") Date start,
+		前端传入的参数是字符串，但service的方法需要的数据类型是Date类型，可以加注解解决：
+
+@EnableScheduling : 开启对计划任务的支持(定时器) 
+
+    需要有注解@Scheduled配合，类的方法中有@Scheduled注解，则该类必须加上@Component注解
+
+    @Service
+    public class ScheduledTaskService {
+        private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+
+        @Scheduled(fixedRate = 5000) //通过@Scheduled声明该方法是计划任务，使用fixedRate属性每隔固定时间执行
+        public void reportCurrentTime(){
+            System.out.println("每隔5秒执行一次 "+dateFormat.format(new Date()));
+        }
+
+        @Scheduled(cron = "0 07 20 ? * *" ) //使用cron属性可按照指定时间执行，本例指的是每天20点07分执行；
+        public void fixTimeExecution(){
+            System.out.println("在指定时间 "+dateFormat.format(new Date())+" 执行");
+        }
+    }
+
+@ModelAttribute
+    请求的FORM表单数据
+        <form method="post" action="hao.do">
+            a: <input id="a" type="text" name="a"/>
+            b: <input id="b" type="text" name="b"/>
+            <input type="submit" value="Submit" />
+        </form>
+
+        public class Pojo {
+            private String a;
+            private int b;
+        }
+            
+        @RequestMapping(method = RequestMethod.POST) 
+        public String processSubmit(@ModelAttribute("pojo") Pojo pojo) { 
+            return "hello World"; 
+        }
+
+@RequestBody
+    springmvc接收JSON类型的参数数据
+    
+    处理的是ajax提交来的json数据!!!!!
+    1、常用来处理content-type是application/json类型。
+    2、通过@requestBody可以将请求体中的JSON字符串绑定到相应的bean上，当然，也可以将其分别绑定到对应的字符串上。
+        例如说以下情况：
+    　　　　$.ajax({
+    　　　　　　　　url:"/login",
+    　　　　　　　　type:"POST",
+    　　　　　　　　data:'{"userName":"admin","pwd","admin123"}',
+    　　　　　　　　content-type:"application/json charset=utf-8",
+    　　　　　　　　success:function(data){
+    　　　　　　　　　　alert("request success!");
+    　　　　　　　　}
+    　　　　});
+
+    　　　　@requestMapping("/login")
+    　　　　public void login(@RequestBody String userName, @RequestBody String pwd){
+    　　　　　　System.out.println(userName + "：" + pwd);
+    　　　　}
+            这种情况是将JSON字符串中的两个变量的值分别赋予了两个字符串
+        
+        如果有一个User类，拥有如下字段：
+            String userName; String pwd;
+        那么上述参数可以改为以下形式：@requestBody User user 
+        这种形式会将JSON字符串中的值赋予user中对应的属性上
+    　　需要注意的是，JSON字符串中的key必须对应user中的属性名，
+
+@Autowired
+    1. @Autowired是根据类型注入的, 可以对成员变量、方法以及构造函数进行注释。@Resource是根据名字注入的
+
+    2. 推荐对构造函数进行注解, 而不是对成员变量进行注解
+
+        原来是
+        @Autowired
+        private UserService userService;
+
+        建议写成
+        private final UserService userService;
+
+        @Autowired
+        private UserController(UserService userService) {
+            this.userService = userService;
+        }
+
+   原因如下:
+
+        @Autowired
+        private User user;
+        private String school;
+
+        public UserAccountServiceImpl() {
+            this.school = user.getSchool();
+        }
+
+        这段代码会报错. 因为Java类会先执行构造方法，然后再给注解了@Autowired 的user注入值，
+        但在构造方法中要有user对象, 此时还没有注入, 所以在执行构造方法的时候，就会报错。
+
+    改正: 使用构造器注入
+
+        private User user;
+        private String school;
+
+        @Autowired
+        public UserAccountServiceImpl(User user) {
+            this.user = user;
+            this.school = user.getSchool();
+        }
+
+    可以看出，使用构造器注入的方法，可以明确成员变量的加载顺序。
+
+    Java变量的初始化顺序为：
+    静态变量或静态语句块–>实例变量或初始化语句块–>构造方法–>@Autowired
+
+    @Autowired本身就是单例模式，只会在程序启动时执行一次，即使不定义final也不会初始化第二次，可能是为了防止，在程序运行的时候，又执行了一遍构造函数；或者是更容易让人理解的意思，加上final只会在程序启动的时候初始化一次，并且在程序运行的时候不会再改变。
+
+@CookieValue:
+    从Http请求头中的Cookie提取指定的某个Cookie.
+    在控制器的方法参数中使用注解把请求路径指定的参数提取出来作为实参注入形参中
+    @RequestMapping(value = "/jsessionId")    
+    public String jsessionId(  
+            @CookieValue(value = "JSESSIONID", required = true, defaultValue = "MyJsessionId") String jsessionId,  
+            Model model) {  
+        model.addAttribute("jsessionId", jsessionId);  
+        return "request/cookieValue";  
+    }  
+
+@NoRepositoryBean:
+    spring data的通用实现中, 该注解用作标记当前接口或类不应该作为@Repository的bean注册到spring上下文中.
+    比如在jpa中, 我们只需要写Repository的接口, 不需要写实现类. 这是因为spring提供了自动代理加了@Repository Bean的机制.
+    该机制的前提是, 该接口或类必须实现spring data提供的Repository接口
+
+cousumes的样例：
+    @Controller
+    @RequestMapping(value = "/pets", method = RequestMethod.POST, consumes="application/json")
+    public void addPet(@RequestBody Pet pet, Model model) {    
+        // implementation omitted
+    }
+    方法仅处理request Content-Type为“application/json”类型的请求。
+
+produces的样例：
+    @Controller
+    @RequestMapping(value = "/pets/{petId}", method = RequestMethod.GET, produces="application/json")
+    @ResponseBody
+    public Pet getPet(@PathVariable String petId, Model model) {    
+        // implementation omitted
+    }
+    方法仅处理request请求中Accept头中包含了"application/json"的请求，同时暗示了返回的内容类型为application/json;

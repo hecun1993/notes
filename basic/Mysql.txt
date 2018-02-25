@@ -262,3 +262,24 @@ datetime允许为空值，可以自定义值，系统不会自动修改其值。
 	timestamp类型适合用来记录数据的最后修改时间，因为只要你更改了记录中其他字段的值，timestamp字段的值都会被自动更新。（如果需要可以设置timestamp不自动更新）
 	datetime类型适合用来记录数据的原始的创建时间，因为无论你怎么更改记录中其他字段的值，datetime字段的值都不会改变，除非你手动更改它。
 
+select longtitude, latitude, count(1) from stat group by longtitude, latitude;
+
+select current_timestamp() from dual;
+
+select unix_timestamp(now()) from dual;
+
+select current_timestamp - interval 10 minute from dual;
+
+select unix_timestamp(data_sub(sysdate(), interval 10 minute)) from dual;
+
+select unix_timestamp(data_sub(current_timestamp(), interval 10 minute)) from dual;
+
+select unix_timestamp(data_sub(current_timestamp(), interval 10 minute)) * 1000 from dual;
+
+select longtitude, latitude, count(1) from stat where time > unix_timestamp(data_sub(current_timestamp(), interval 10 minute)) * 1000 group by longtitude, latitude;
+
+DataSource在jdk7之后, 不需要手动关闭了.
+
+PrepareStatement:
+	execute()主要用在ddl语句, 也就是建表语句中
+	executeUpdate()主要用在dml语句, 也就是insert update delete语句中, 返回值是影响的行数

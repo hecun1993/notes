@@ -1,0 +1,117 @@
+#### FactoryBean和BeanFactory的区别
+
+BeanFactory:
+以Factory结尾，它是一个工厂类，用于管理Bean的一个工厂. BeanFactory是IOC最基本的容器，负责生产和管理bean，它为其他具体的IOC容器提供了最基本的规范，例如DefaultListableBeanFactory,XmlBeanFactory,ApplicationContext 等具体的容器都是实现了BeanFactory，再在其基础之上附加了其他的功能。
+
+FactoryBean：
+以Bean结尾，表示它是一个Bean. FactoryBean是一个接口，当在IOC容器中的Bean实现了FactoryBean后，通过getBean(String BeanName)获取到的Bean对象并不是FactoryBean的实现类对象，而是这个实现类中的getObject()方法返回的对象。要想获取FactoryBean的实现类，就要getBean(&BeanName)，在BeanName之前加上&。
+
+#### ApplicationContext和BeanFactory的区别
+
+1. BeanFactroy采用的是延迟加载形式来注入Bean的，即只有在使用到某个Bean时(调用getBean())，才对该Bean进行加载实例化，这样，我们就不能发现一些存在的Spring的配置问题。ApplicationContext则相反，它是在容器启动时，一次性创建了所有的Bean。这样，在容器启动时，我们就可以发现Spring中存在的配置错误。 
+
+使用applicationContext的好处就是：所有的对象都可以预加载，缺点就是消耗服务器的内存；而使用BeanFactory的话，好处是节约内存，缺点则是速度会相对来说慢一些。而且有可能会出现空指针异常的错误。而且通过bean工厂创建的bean生命周期会简单一些。
+
+2. BeanFactory和ApplicationContext都支持BeanPostProcessor、BeanFactoryPostProcessor的使用，但两者之间的区别是：BeanFactory需要手动注册，而ApplicationContext则是自动注册.
+
+3. ApplicationContext扩展了ResourceLoader(资源加载器)接口，从而可以用来加载多个Resource，而BeanFactory是没有扩展ResourceLoader 
+
+4. BeanFactory是不支持国际化功能的，因为BeanFactory没有扩展Spring中MessageResource接口。相反，由于ApplicationContext扩展了MessageResource接口，因而具有消息处理的能力(i18N)
+
+5. 强大的事件机制(Event)  
+ApplicationContext的事件机制主要通过ApplicationEvent和ApplicationListener这两个接口来提供的，即当ApplicationContext中发布一个事件的时，所有扩展了ApplicationListener的Bean都将会接受到这个事件，并进行相应的处理。 
+
+Spring提供了部分内置事件，主要有以下几种：  
+    ContextRefreshedEvent ：ApplicationContext发送该事件时，表示该容器中所有的Bean都已经被装载完成，此ApplicationContext已就绪可用 
+    ContextStartedEvent：生命周期 beans的启动信号  
+    ContextStoppedEvent: 生命周期 beans的停止信号  
+    ContextClosedEvent：ApplicationContext关闭事件，则context不能刷新和重启，从而所有的singleton bean全部销毁(因为singleton bean是存在容器缓存中的) 
+
+虽然spring提供了许多内置事件，但用户也可根据自己需要来扩展spriong中的事物。注意，要扩展的事件都要实现ApplicationEvent接口。
+
+=================================================
+
+BeanFactory设计路径
+BeanFactory -> HierarchicalBeanFactory -> ConfigurableBeanFactory，是一个主要的BeanFactory设计路径。
+
+BeanFactory：基本规范，比如说getBean()这样的方法。
+HierarchicalBeanFactory：管理双亲IoC容器规范，比如说getParentBeanFactory()这样的方法。
+ConfigurableBeanFactory：对BeanFactory的配置功能，比如通过setParentBeanFactory()设置双亲IoC容器，通过addBeanPostProcessor()配置Bean后置处理器。
+
+ApplicationContext设计路径
+BeanFactory -> ListableBeanFactory 和 HierarchicalBeanFactory -> ApplicationContext -> ConfigurableApplicationContext，是另外一个主要的ApplicationContext设计路径。
+
+ListableBeanFactory：细化了许多BeanFactory的功能，比如说getBeanDefinitionNames()。
+ApplicationContext：通过继承MessageSource、ResourceLoader、ApplicationEventPublisher接口，添加了许多高级特性。
+
+=================================================  
+
+#### 综述
+
+Spring通过一个配置文件描述Bean及Bean直接的依赖关系，利用Java语言的反射功能实例化Bean并建立Bean之间的依赖关系。Sprig的IoC容器在完成这些底层工作的基础上，还提供了Bean实例缓存、生命周期管理、Bean实例代理、事件发布、资源装载等高级服务。
+
+Bean工厂（com.springframework.beans.factory.BeanFactory）是Spring框架最核心的接口，它提供了高级IoC的配置机制, BeanFactory使管理不同类型的Java对象成为可能.
+
+应用上下文（com.springframework.context.ApplicationContext）建立在BeanFactory基础之上，提供了更多面向应用的功能，它提供了国际化支持和框架事件体系，更易于创建实际应用。
+
+我们一般称BeanFactory为IoC容器，而称 ApplicationContext为应用上下文。但有时为了行文方便，我们也将ApplicationContext称为Spring容器。
+    
+BeanFactory是Spring框架的基础设施，面向Spring本身；ApplicationContext面向使用Spring框架的开发者，几乎所有的应用场合都直接使用ApplicationContext而非底层的BeanFactory。
+
+
+#### BeanFactory的使用
+
+```java
+public class BeanFactoryTest {
+    public static void main(String[] args) throws IOException {
+        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Resource res = resolver.getResource("classpath:beans.xml");
+        BeanFactory bf = new XmlBeanFactory(res);
+        System.out.println("init BeanFactory.");
+
+        BeanFactory factory = new XmlBeanFactory(new ClassPathResource("com/hsp/ioc/beans.xml"));
+        
+    }
+}
+```
+
+在初始化BeanFactory时，必须为其提供一种日志框架，我们使用Log4J，即在类路径下提供Log4J配置文件，这样启动Spring容器才不会报错。
+
+```xml
+log4j.properties
+log4j.rootLogger=INFO,A1
+log4j.appender.A1=org.apache.log4j.ConsoleAppender
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern=%d %5p [%t] (%F:%L) - %m%n
+```
+
+#### ApplicationContext的使用
+
+ApplicationContext使用ClassPathXmlApplicationContext和FileSystemXMLApplicationContext，前者默认从类路径下加载配置文件，后者默认从文件系统中装载配置文件。在获取ApplicationContext实例后，就可以像BeanFactory一样调用getBean(beanName)返回Bean了。
+
+BeanFactory在初始化容器时，并未实例化Bean，直到第一次访问某个Bean时才实例目标Bean；而ApplicationContext则在初始化应用上下文时就实例化所以单实例的Bean。
+
+```java
+public class AnnotationApplicationContext {
+    public static void main(String[] args) {
+        ApplicationContext ctx = new AnnotationConfigApplicationContext(Beans.class);
+        Car car = ctx.getBean("car", Car.class);
+        System.out.println(car.getBrand());
+        System.out.println(car.getMaxSpeed());
+    }
+}
+
+@Configurable
+public class Beans {
+    @Bean(name = "car")
+    public Car buildCar() {
+        Car car = new Car();
+        car.setBrand("英菲迪尼");
+        car.setMaxSpeed(300);
+        return car;
+    }
+}
+```
+
+AnnotationConfigEmbeddedWebApplicationContext -> ApplicationContext -> BeanFactory
+AnnotationConfigApplicationContext: 专门用Java配置 + 注解方式来获取Bean的

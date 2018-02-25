@@ -1,3 +1,25 @@
+基于分布式文件存储的数据库。由C++语言编写
+是一个高性能，开源，无模式的文档型数据库，是当前NoSql数据库中比较热门的一种
+是一个介于关系数据库和非关系数据库之间的产品
+支持的数据结构非常松散，是类似json的bjson格式
+MongoDB的适合对大量或者无固定格式的数据进行存储，比如：日志、缓存等。
+对事务支持较弱，不适用复杂的多文档（多表）的级联查询。
+
+database -> collection -> document
+
+
+在windows中使用mongodb：
+	创建这样两个文件夹:
+		D:\Program Files (x86)\MongoDB\data\db
+
+	在cmd中:
+		mongod --dbpath D:\Program Files (x86)\MongoDB\data\db
+	即可启动
+
+	在D:\Program Files (x86)\MongoDB\bin下打开cmd
+	输入mongo。即可操作数据库
+	net start mongodb
+
 每个文档都有一个属性，为_id，用来保证每个文档的唯一性。可以自己设置，也可以mongodb自己生成。
 
 $lt, $gt, $gte, $ne
@@ -88,18 +110,6 @@ upsert方法：
 	举例：
 		db.post.update({count:100},{"$inc":{count:10}},true);
 		在找不到count=100这条记录的时候，自动插入一条count=100，然后再加10，最后得到一条 count=110的记录
-
-在windows中使用mongodb：
-	创建这样两个文件夹:
-		D:\Program Files (x86)\MongoDB\data\db
-
-	在cmd中:
-		mongod --dbpath D:\Program Files (x86)\MongoDB\data\db
-	即可启动
-
-	在D:\Program Files (x86)\MongoDB\bin下打开cmd
-	输入mongo。即可操作数据库
-	net start mongodb
 
 db.persons.update({name: "hds2"}, {$set: {name: "hds3"}})
 db.persons.drop() -- 删除collection

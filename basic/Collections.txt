@@ -114,6 +114,7 @@ protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
 	* HashSet是Set的一个实现类,hashMap是Map的一个实现类
 	* HashSet底层采用的是HashMap进行实现的，但是没有key-value，只有HashMap的key视图，换句话说，HashSet以对象作为元素, 而HashMap以(key-value)的一组对象作为元素。
 	* HashSet不容许重复的对象(e1.equals(e2) == false)，无序，也就是元素的插入顺序和输入顺序不一致。
+	* HashSet/TreeSet的构造方法就是new一个HashMap, 只不过值都填充在key的位置上, value是一个相同的new Object()
 
 TreeMap：
 	基于红黑二叉树实现，containsKey(), get(), put(), remove()都有着log(n)的时间复杂度。线程非安全，不允许null，key不可以重复，value允许重复，存入TreeMap的元素应当实现Comparable接口或者实现Comparator接口，会按照排序后的顺序迭代元素，两个相比较的key不得抛出classCastException。主要用于存入元素的时候对元素进行自动排序，迭代输出的时候就按排序顺序输出

@@ -1,0 +1,89 @@
+#### ApplicationContextAware
+
+定义:
+
+```java
+public interface ApplicationContextAware extends Aware {
+    void setApplicationContext(ApplicationContext applicationContext) throws BeansException;
+}
+```
+
+使用:
+
+```java
+public class SpringContextUtils implements ApplicationContextAware {
+    private static ApplicationContext context;
+    @Override
+    public void setApplicationContext(ApplicationContext context)
+            throws BeansException {
+        SpringContextUtils.context = context;
+    }
+    public static ApplicationContext getContext(){
+        return context;
+    }
+}
+
+//具体使用1 : 通过上下文在实现了ApplicationContextAware接口的Bean中, 获取其他的Bean
+SpringContextUtils.getContext().getBean("userDao");
+```
+
+Spring中提供一些Aware相关接口，像是BeanFactoryAware、ApplicationContextAware、ResourceLoaderAware、ServletContextAware等等，实现这些Aware接口的Bean在被初始之后，可以取得一些相对应的资源.
+
+例如实现BeanFactoryAware的Bean在初始后，Spring容器将会注入BeanFactory的实例; 
+
+实现ApplicationContextAware的Bean，在Bean被初始后，将会被注入ApplicationContext的实例.
+
+这样, 注入了ApplicationContext的spring上下文的Bean, 就可以利用spring上下文, 获得容器中的资源, 或者调用容器的方法. 比如下面的例子:
+
+```java
+@Component
+public class HelloBean implements ApplicationContextAware {
+    private ApplicationContext applicationContext;
+    private String helloWord = "Hello!World!";
+    
+    //通过实现这个方法, spring会默认把ApplicationContext上下文注入到HelloBean中, 通过getContext就可以获得这个上下文
+    @Override
+    public void setApplicationContext(ApplicationContext context) {
+        this.applicationContext = context;
+    }
+ 
+    public void setHelloWord(String helloWord) {
+        this.helloWord = helloWord;
+    }
+ 
+    public String getHelloWord() {
+        applicationContext.publishEvent(new PropertyGettedEvent("[" + helloWord + "] is getted"));
+        return helloWord;
+    }
+    
+    public static ApplicationContext getContext(){
+        return context;
+    }
+}
+```
+
+```java
+public class PropertyGettedEvent extends ApplicationEvent {
+    public PropertyGettedEvent(Object source) {
+        super(source);
+    }
+}
+
+@Component
+public class PropertyGettedListener implements ApplicationListener {
+    public void onApplicationEvent(ApplicationEvent event) {
+        System.out.println(event.getSource().toString());  
+    }
+}
+```
+
+```java
+public class Test {
+    public static void main(String[] args) {
+        ApplicationContext context = new ClassPathXmlApplicationContext("bean.xml");
+        //这里获得的Bean就有ApplicationContext对象, 可以调用其publishEvent方法
+        HelloBean hello = (HelloBean) context.getBean("helloBean");
+        System.out.println(hello.getHelloWord());
+    }
+}
+```

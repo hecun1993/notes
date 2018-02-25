@@ -1,0 +1,50 @@
+ELK: www.elastic.co
+
+命令行启动, 则输入什么, 输出什么
+	./bin/logstash -e 'input { stdin { } } output {stdout { } }'
+
+以json形式输出
+	./bin/logstash -e 'input { stdin { } } output {stdout { codec => json } }'
+
+创建文件启动, 比如创建test.conf
+	input {
+		stdin {
+		}
+	}
+	
+	output {
+		stdout {
+			codec => json
+		}
+	}
+	
+    然后
+	    ./bin/logstash -f test.conf 启动
+
+从文件输入日志, 读取到控制台: file_stdout.conf
+	input {
+		file {
+			path => "/home/hadoop/app/logstash-2.4.1/logstash.txt"
+		}
+	}
+	output {
+		stdout {
+			codec => json
+		}
+	}
+	./bin/logstash -f file_stdout.conf 启动
+
+从文件输入日志, 读取到kafka中: logstash_file.conf
+	input {
+		file {
+			path => "/home/hadoop/app/logstash-2.4.1/logstash.txt"
+		}
+	}
+	output {
+		kafka {
+			topic_id => "logstash_topic"
+			bootstrap_server => "hadoop:9092"
+			batch_size => 1
+		}
+	}
+	./bin/logstash -f logstash_file.conf 启动

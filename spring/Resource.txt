@@ -1,0 +1,194 @@
+获取资源文件的方法说明：
+    Class/ClassLoader来调用:
+    getResourceAsStream()               返回的是inputstream
+    getResource()                       返回的是URL
+
+    Class.getResource("")               返回的是当前Class这个类所在包开始的为置
+    Class.getResource("/")              返回的是classpath的位置
+    getClassLoader().getResource("")    返回的是classpath的位置
+    getClassLoader().getResource("/")   错误的!!
+
+#### Class.getResourceAsStream 和 ClassLoader.getResourceAsStream 
+
+1. 两者都可以从classpath中获取资源, 所谓的classpath, 包含classpath中的路径和classpath中的jar
+
+2. 在使用Class.getResourceAsStream时， 资源路径有两种方式，一种以 / 开头，则这样的路径是指定绝对路径， 如果不以 / 开头， 则路径是相对与这个class所在的包的。
+
+在使用ClassLoader.getResourceAsStream时， 路径直接使用相对于classpath的绝对路径, 不能以 / 开头!
+
+com.explorers.Test.class.getResourceAsStream("abc.jpg") 
+com.explorers.Test.class.getResourceAsStream("/com/explorers/abc.jpg") 
+ClassLoader.getResourceAsStream("com/explorers/abc.jpg") 
+
+效果是一致的.
+
+3.  ServletContext.getResourceAsStream(String path)：默认从WebAPP根目录下取资源，Tomcat下path是否以’/'开头无所谓，当然这和具体的容器实现有关。
+
+ServletContext.getRealPath("/");  得到Web应用程序的根目录的绝对路径。
+System.getProperty("user.dir"); 得到项目的根路径
+
+===============================
+
+
+
+#### 实例
+
+```java
+//读取classpath下的application.properties文件
+ClassLoader cl = Thread.currentThread.getContextClassLoader();
+InputStream is = cl.getResourceAsStream("application.properties");
+Properties prop = new Properties();
+prop.load(is);
+String appName = prop.getProperty("spring.application.name");
+```
+
+##### 获取web上下文路径
+
+//获取ServletContext对象  
+//this.getServletConfig().getServletContext();  
+//等同于下面一句，因为创建getServletContext必须要通过getServletConfig对象  
+ServletContext context = this.getServletContext();  
+    
+//获取web的上下文路径，  
+String path = context.getContextPath();  
+    
+//请求重定向，这样的好处可以让获取的路径更加灵活。不用考虑项目名是否发生了变化。  
+response.sendRedirect(context.getContextPath()+"/index.jsp");  
+
+ServletContext路径相关:
+
+获取当前web应用的某一个文件的真实路径(绝对路径)--是获取的服务器上的物理路径
+    getRealPath();
+
+获得当前web应用的名称
+    getContextPath
+
+获得当前web应用的某一个文件对应的输入流
+    getResourceAsStream(String path) path的/为当前web应用的根目录
+
+
+#### spring提供的Resource接口
+
+1. 这个Resource接口统一了资源的访问，而且提供了一些便利的接口
+
+public interface InputStreamSource {  
+    InputStream getInputStream() throws IOException;  
+}  
+
+public interface Resource extends InputStreamSource {  
+       boolean exists();  
+       boolean isReadable();  
+       boolean isOpen();  //返回当前Resource代表的底层资源是否已经打开，如果返回true，则只能被读取一次然后关闭以避免资源泄露；常见的Resource实现一般返回false。
+       URL getURL() throws IOException;  
+       URI getURI() throws IOException;  
+       File getFile() throws IOException;  
+       long contentLength() throws IOException;  
+       long lastModified() throws IOException;  
+       Resource createRelative(String relativePath) throws IOException;  
+       String getFilename();  
+       String getDescription();  
+}  
+
+2. 内置Resource的实现
+
+ClassPathResource / FileSystemResource / ServletContextResource
+
+ClassPathResource代表classpath路径的资源，将使用ClassLoader进行加载资源。classpath 资源存在于类路径中的文件系统中或jar包里，且“isOpen”永远返回false，表示可多次读取资源。
+
+ClassPathResource加载资源替代了Class类和ClassLoader类的“getResource(String name)”和“getResourceAsStream(String name)”两个加载类路径资源方法，提供一致的访问方式。
+
+ClassPathResource的构造方法
+public ClassPathResource(String path)：使用默认的ClassLoader加载“path”类路径资源；
+public ClassPathResource(String path, ClassLoader classLoader)：使用指定的ClassLoader加载“path”类路径资源；将加载指定的ClassLoader类路径上相对于根路径的资源：
+
+Resource resource = new ClassPathResource("cn/javass/spring/chapter4/test1.properties");
+
+ClassLoader cl = this.getClass().getClassLoader();  
+Resource resource = new ClassPathResource("cn/javass/spring/chapter4/test1.properties", cl);  
+
+Class clazz = this.getClass();  
+Resource resource = new ClassPathResource("cn/javass/spring/chapter4/test.properties", clazz);
+
+加载jar包里的资源，首先在当前类路径下找不到，最后才到Jar包里找，而且在第一个Jar包里找到的将被返回：
+
+=============================================================
+
+#### spring提供的ResourceLoader接口
+
+ResourceLoader接口用于返回Resource对象；其实现可以看作是一个生产Resource的工厂类。
+
+public interface ResourceLoader {
+    String CLASSPATH_URL_PREFIX = ResourceUtils.CLASSPATH_URL_PREFIX;
+    Resource getResource(String location);
+    ClassLoader getClassLoader();
+}
+
+getResource接口用于根据提供的location参数返回相应的Resource对象；而getClassLoader则返回加载这些Resource的ClassLoader。
+
+Spring提供了一个适用于所有环境的DefaultResourceLoader实现，可以返回ClassPathResource、UrlResource；还提供一个用于web环境的ServletContextResourceLoader，它继承了DefaultResourceLoader的所有功能，又额外提供了获取ServletContextResource的支持。
+
+ResourceLoader在进行加载资源时需要使用前缀来指定需要加载：“classpath:path”表示返回ClasspathResource，“http://path”和“file:path”表示返回UrlResource资源，如果不加前缀则需要根据当前上下文来决定，DefaultResourceLoader默认实现可以加载classpath资源
+
+@Test  
+public void testResourceLoad() {  
+    ResourceLoader loader = new DefaultResourceLoader();  
+    Resource resource = loader.getResource("classpath:cn/javass/spring/chapter4/test1.txt");  
+    //验证返回的是ClassPathResource  
+    Assert.assertEquals(ClassPathResource.class, resource.getClass());  
+    Resource resource2 = loader.getResource("file:cn/javass/spring/chapter4/test1.txt");  
+    //验证返回的是ClassPathResource  
+    Assert.assertEquals(UrlResource.class, resource2.getClass());  
+    Resource resource3 = loader.getResource("cn/javass/spring/chapter4/test1.txt");  
+    //验证返默认可以加载ClasspathResource  
+    Assert.assertTrue(resource3 instanceof ClassPathResource);  
+}  
+
+对于目前所有ApplicationContext都实现了ResourceLoader，因此可以使用其来加载资源。
+    ClassPathXmlApplicationContext：不指定前缀将返回默认的ClassPathResource资源，否则将根据前缀来加载资源；
+    FileSystemXmlApplicationContext：不指定前缀将返回FileSystemResource，否则将根据前缀来加载资源；
+    WebApplicationContext：不指定前缀将返回ServletContextResource，否则将根据前缀来加载资源；
+    其他：不指定前缀根据当前上下文返回Resource实现，否则将根据前缀来加载资源。
+
+ResourceLoaderAware是一个标记接口，用于通过ApplicationContext上下文注入ResourceLoader。
+public class ResourceBean implements ResourceLoaderAware {  
+    private ResourceLoader resourceLoader;  
+    @Override  
+    public void setResourceLoader(ResourceLoader resourceLoader) {  
+        this.resourceLoader = resourceLoader;  
+    }  
+    public ResourceLoader getResourceLoader() {  
+        return resourceLoader;  
+    }  
+}  
+
+实例:
+
+```java
+ResourceLoader rl = new DefaultResourceLoader();
+Resource resource = rl.getResource("classpath:application.properties");
+InputStream is = resource.getInputStream();
+String content = StreamUtils.copytoString(is, Charset.forName("UTF-8"));
+```
+
+#### Resource与ResourceLoader对比
+
+１、Resource接口定义了应用访问底层资源的能力。
+
+通过FileSystemResource以文件系统绝对路径的方式进行访问；
+通过ClassPathResource以类路径的方式进行访问；
+通过ServletContextResource以相对于Web应用根目录的方式进行访问。
+　　在获取资源后，用户就可以通过Resource接口定义的多个方法访问文件的数据和其他的信息：如可以通过getFileName()获取文件名，通过getFile()获取资源对应的File对象，通过getInputStream()直接获取文件的输入流。此外，还可以通过createRelative(String relativePath)在资源相对地址上创建新的文件。
+
+２、ResourceLoader接口提供了一个加载文件的策略。它提供了一个默认的实现类DefaultResourceLoader
+
+================================================
+
+#### classpath: / classpath*:
+
+ResourceLoader接口只提供了classpath前缀的支持。而classpath*的前缀支持是在它的子接口ResourcePatternResolver中。
+ResourceLoader提供 classpath下单资源文件的载入，而ResourcePatternResolver提供了多资源文件的载入。
+ResourcePatternResolver有一个实现类：PathMatchingResourcePatternResolver，那我们直奔主题，查看PathMatchingResourcePatternResolver的getResources()
+
+1.无论是classpath还是classpath*都可以加载整个classpath下（包括jar包里面）的资源文件。
+2.classpath只会返回第一个匹配的资源，查找路径是优先在项目中存在资源文件，再查找jar包。
+3.文件名字包含通配符资源(如果spring-*.xml，spring*.xml)，   如果根目录为""， classpath加载不到任何资源， 而classpath*则可以加载到classpath中可以匹配的目录中的资源，但是不能加载到jar包中的资源

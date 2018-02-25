@@ -1,0 +1,89 @@
+SpringBoot的启动过程
+
+1. SpringBoot的启动过程中，需要调用SpringApplication类的静态方法run(). 这个run方法的返回值，是ApplicationContext接口的实现类ConfigurableApplicationContext。（SpringBoot的启动过程，实际上就是对ApplicationContext的初始化过程）
+
+2. 所以，我们需要首先创建SpringApplication对象。也就是调用其构造方法，在构造方法中传入一些初始化参数。这个初始化参数一般是项目的配置类. 比如是否开启日志等。然后调用其构造函数中的initialize方法。在initialize方法中，有四点需要注意。
+
+    private void initialize(Object[] sources) {
+		if (sources != null && sources.length > 0) {
+			this.sources.addAll(Arrays.asList(sources));
+		}
+        //4.
+		this.webEnvironment = deduceWebEnvironment();
+		//1.
+        setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+        //2.
+		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+        //3.
+		this.mainApplicationClass = deduceMainApplicationClass();
+	}
+
+2.1 会找到声明的所有ApplicationContextInitializer的实现类并将其实例化。
+ApplicationContextInitializer是Spring框架中的接口，其作用可以理解为在ApplicationContext执行refresh之前，调用ApplicationContextInitializer的initialize()方法，对ApplicationContext做进一步的设置和处理。
+
+public interface ApplicationContextInitializer<C extends ConfigurableApplicationContext> {
+	/**
+	 * Initialize the given application context.
+	 * @param applicationContext the application to configure
+	 */
+	void initialize(C applicationContext);
+}
+
+2.2 找到声明的所有ApplicationListener的实现类并将其实例化。
+ApplicationListener 是Spring框架中的接口，就是事件监听器，其作用可以理解为在SpringApplicationRunListener发布通知事件时，由ApplicationListener负责接收。
+
+public interface ApplicationListener<E extends ApplicationEvent> extends EventListener {
+	/**
+	 * Handle an application event.
+	 * @param event the event to respond to
+	 */
+	void onApplicationEvent(E event);
+
+}
+
+2.3 获得当前执行main方法的类对象，这里就是SpringBootWebDemoApplication的实例。
+
+2.4 判断当前是否是web环境。
+
+3. 当创建好SpringApplication对象后，就要调用其run方法，来产生ApplicationContext接口的实现类了。
+
+    public ConfigurableApplicationContext run(String... args) {
+		StopWatch stopWatch = new StopWatch();
+		stopWatch.start();
+		ConfigurableApplicationContext context = null;
+		FailureAnalyzers analyzers = null;
+		configureHeadlessProperty();
+		SpringApplicationRunListeners listeners = getRunListeners(args);
+		listeners.starting();
+		try {
+			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
+					args);
+            //1. 设置环境
+			ConfigurableEnvironment environment = prepareEnvironment(listeners,
+					applicationArguments);
+			Banner printedBanner = printBanner(environment);
+            //2. 创建上下文
+			context = createApplicationContext();
+			analyzers = new FailureAnalyzers(context);
+			prepareContext(context, environment, listeners, applicationArguments,
+					printedBanner);
+			refreshContext(context);
+			afterRefresh(context, applicationArguments);
+			listeners.finished(context, null);
+			stopWatch.stop();
+			if (this.logStartupInfo) {
+				new StartupInfoLogger(this.mainApplicationClass)
+						.logStarted(getApplicationLog(), stopWatch);
+			}
+			return context;
+		} catch (Throwable ex) {
+			handleRunFailure(context, listeners, analyzers, ex);
+			throw new IllegalStateException(ex);
+		}
+	}
+
+
+这个过程主要包括以下步骤
+    3.1 ApplicationContext创建后立刻为其设置Environment，并由ApplicationContextInitializer对其进一步封装。
+    3.2 通过SpringApplicationRunListener在ApplicationContext初始化过程中各个时点发布各种广播事件，并由ApplicationListener负责接收广播事件。
+    3.3 初始化过程中完成IoC的注入，包括通过@EnableAutoConfiguration导入的各种自动配置类。

@@ -1,0 +1,452 @@
+Apache Storm is a free and open source distributed realtime computation system
+	免费
+	开源
+	分布式
+	实时计算系统
+
+Storm makes it easy to reliably process unbounded streams of data
+	unbounded: 无界
+	bounded: Hadoop/Spark SQL   离线(input .... output)
+
+Storm has many use cases: 
+	realtime analytics, 
+	online machine learning, 
+	continuous computation, 
+	distributed RPC, 
+	ETL, and more. 
+
+Storm特点
+	fast：a million tuples processed per second per node
+	scalable, 
+	fault-tolerant, 
+	guarantees your data will be processed
+	and is easy to set up and operate.
+
+小结：Strom能实现高频数据和大规模数据的实时处理
+
+Storm产生于BackType(被Twitter收购)公司
+
+需求：大数据的实时处理
+
+自己来实现实时系统，要考虑的因素：
+1) 健壮性
+2) 扩展性/分布式
+3) 如何使得数据不丢失，不重复
+4) 高性能、低延时
+
+Storm开源
+	2011.9
+	Apache
+	Clojure Java
+
+Storm技术网站
+1) 官网： storm.apache.org
+2) GitHub: github.com/apache/storm
+3) wiki: https://en.wikipedia.org/wiki/Storm_(event_processor)
+
+Storm vs Hadoop
+	数据源/处理领域: 离线批处理, 实时数据
+	处理过程
+		Hadoop: Map  Reduce
+		Storm:  Spout  Bolt
+	进程是否结束
+		storm不停(扶梯)
+		hadoop电梯
+	处理速度
+	使用场景	
+
+发展趋势
+	1) 社区的发展、活跃度
+	2) 企业的需求
+	3) 大数据相关的大会，Storm主题的数量上升
+	4) 互联网 JStorm
+
+==================================================
+
+核心概念
+	Topologies
+		拓扑，将整个流程串起来, 农夫山泉生产线
+	Streams
+		流，数据流，水流
+	Spouts
+		产生数据/水的东西, 水龙头
+	Bolts
+		处理数据/水的东西, 水壶/水桶
+	Tuple
+		数据/水	
+
+Storm核心概念总结
+	Topology： 计算拓扑，由spout和bolt组成的
+	Stream：消息流，抽象概念，没有边界的tuple构成
+	Tuple：消息/数据  传递的基本单元
+	Spout：消息流的源头，Topology的消息生产者
+	Bolt：消息处理单元，可以做过滤、聚合、查询/写数据库的操作
+
+==================================================
+
+搭建开发环境
+	jdk: 1.8
+		windows: exe  
+		linux/mac(dmg): tar .....   把jdk指定到系统环境变量(~/.bash_profile)
+			export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home
+			export PATH=$JAVA_HOME/bin:$PATH
+
+			source ~/.bash_profile
+			echo $JAVA_HOME
+			java -version
+	Maven: 3.3+
+		windows/linux/mac 下载安装包
+		tar .... -C ~/app
+
+		把maven指定到系统环境变量(~/.bash_profile)
+		export MAVEN_HOME=/Users/rocky/app/apache-maven-3.3.9
+		export PATH=$MAVEN_HOME/bin:$PATH
+		source ~/.bash_profile
+		echo $JAVA_HOME
+		mvn -v
+
+		调整maven依赖下载的jar所在位置： $MAVEN_HOME/conf/setting.xml
+		<localRepository>/Users/rocky/maven_repos</localRepository>
+
+	在pom.xml中添加storm的maven依赖
+		<dependency>
+	      <groupId>org.apache.storm</groupId>
+	      <artifactId>storm-core</artifactId>
+	      <version>1.1.1</version>
+	    </dependency>
+
+ISpout
+	概述
+		核心接口(interface)，负责将数据发送到topology中去处理
+		Storm会跟踪Spout发出去的tuple的DAG, 来确认该消息是否被成功处理/失败
+		ack/fail
+		每一个tuple都有一个message id
+		ack/fail/nextTuple
+		是在同一个线程中执行的，所以不用考虑线程安全方面的问题
+
+	核心方法
+		open： 初始化操作
+		close： 资源释放操作
+		nextTuple： 发送数据   core api
+		ack： tuple处理成功，storm会反馈给spout一个成功消息
+		fail：tuple处理失败，storm会发送一个消息给spout，处理失败
+
+	实现类
+		IRichSpout BaseRichSpout
+			public abstract class BaseRichSpout extends BaseComponent implements IRichSpout {
+			public interface IRichSpout extends ISpout, IComponent 
+		DRPCSpout
+		ShellSpout
+
+IComponent接口
+	概述：
+		public interface IComponent extends Serializable
+		为topology中所有可能的组件提供公用的方法
+
+		void declareOutputFields(OutputFieldsDeclarer declarer);
+			定义输出的字段, spout发出的数据, 需要在bolt中接受, 可以根据name进行接收. 
+			所以这个方法用于声明当前Spout/Bolt发送的tuple的名称
+		使用OutputFieldsDeclarer配合使用
+
+
+	实现类：
+	public abstract class BaseComponent implements IComponent
+	BaseRichSpout extends BaseComponent implements IRichSpout
+
+IBolt接口
+	概述
+		职责：接收tuple数据，并进行相应的处理(filter/join/....)
+		先hold住tuple, 然后再处理
+		IBolt会在一个运行的机器上创建，使用Java序列化它，然后提交到主节点(nimbus)上去执行
+		nimbus会启动worker来反序列化，调用prepare方法，然后才开始处理tuple处理
+
+	方法
+		prepare：初始化
+		execute：处理一个tuple数据，tuple对象中包含了元数据信息
+		cleanup：shutdown之前的资源清理操作
+
+	实现类：
+		BaseRichBolt
+			public abstract class BaseRichBolt extends BaseComponent implements IRichBolt {
+		public interface IRichBolt extends IBolt, IComponent 
+		RichShellBolt
+
+求和案例
+	需求：1 + 2 + 3 + ....   = ???
+	实现方案：
+		Spout发送数字作为input
+		使用Bolt来处理业务逻辑：求和
+		将结果输出到控制台
+	拓扑设计： DataSourceSpout  --> SumBolt	
+
+
+词频统计
+	需求：读取指定目录的数据，并实现单词计数功能
+	实现方案：
+		Spout来读取指定目录的数据，作为后续Bolt处理的input
+		使用一个Bolt把input的数据，切割开，我们按照逗号进行分割
+		使用一个Bolt来进行最终的单词的次数统计操作
+		并输出
+	拓扑设计： DataSourceSpout ==> SplitBolt ==> CountBolt	
+
+Storm编程注意事项
+1) spout和bolt的名字不要重复, Exception in thread "main" java.lang.IllegalArgumentException: Spout has already been declared for id DataSourceSpout
+2) 不要以下划线开头命名spout和bolt, org.apache.storm.generated.InvalidTopologyException: null
+3) topology的名称不能重复,  不能同时运行两个一样的topology： local似乎没问题， 等我们到集群测试的时候再来验证这个问题
+
+===========================================
+
+Storm架构
+	类似于Hadoop的架构，主从(Master/Slave)
+	Nimbus: 主
+		集群的主节点，负责任务(task)的指派和分发、资源的分配
+	Supervisor: 从
+		可以启动和停止自己管理的Worker进程
+		可以启动多个Worker进程，可以通过配置来指定
+		一个Topology可以运行在多个Worker之上，也可以通过配置来指定		
+	Nimbus和Supervisor都是无状态的，Nimbus和supervisor上面的信息(元数据)会存储在ZK中
+	Worker:
+		 运行具体组件逻辑(Spout/Bolt)的进程
+
+	=====================分割线===================
+	
+	task： 
+		Spout和Bolt
+		Worker中每一个Spout和Bolt的线程称为一个Task
+	executor： 
+		spout和bolt可能会共享一个线程
+	
+
+Storm部署的前置条件
+	jdk7+
+	python2.6.6+
+
+我们课程使用的Storm版本是：1.1.1
+
+Storm部署
+	下载
+	解压到~/app
+	添加到系统环境变量:~/.bash_profile
+		export STORM_HOME=/home/hadoop/app/apache-storm-1.1.1
+		export PATH=$STORM_HOME/bin:$PATH
+	使其生效: source ~/.bash_profile
+
+	目录结构
+		bin
+		examples
+		conf
+		lib
+
+Storm启动
+	首先在conf/storm-env.sh中配置JAVA_HOME
+
+	$STORM_HOME/bin/storm   执行后, 就能看到很多详细的命令
+		dev-zookeeper  启动zk
+			storm dev-zookeeper  前台启动
+			nohup sh storm dev-zookeeper &
+			jps ： dev_zookeeper
+		nimbus  启动主节点
+			nohup sh storm nimbus &
+		supervisor 启动从节点
+			nohup sh storm supervisor &
+		ui  启动UI界面
+			nohup sh storm ui &
+			默认端口是8080
+		logviewer 启动日志查看服务
+			nohup sh storm logviewer &
+
+注意事项
+	1) 为什么是4个slot
+		在ui界面上, 看到了有4个slot, 其实每个slot就是一个worker, 默认情况下, 一个supervisor会启动四个worker进程
+	2) 为什么有2个Nimbus
+		在1.x之后的storm做了H1的高可用, 所以启动了两个主机
+
+
+Storm如何运行我们自己开发的应用程序呢?
+	storm jar topology-jar-path MainClass args0 args1 args2
+	比如
+		storm jar /home/hadoop/lib/storm-1.0.jar com.imooc.bigdata.ClusterSumStormTopology
+	在ui界面上查看, 发现, 使用了一个slot, 总共有三个task, 也就是三个executor
+
+如何修改将跑在本地的storm app改成运行在集群上的
+	在main方法中(也就是topology里, 增加这样一段代码)
+	StormSubmitter.submitTopology(topoName, new Config(), builder.createTopology());
+
+
+storm 其他命令的使用
+	storm list
+		List the running topologies and their statuses.
+
+	停止作业: kill
+		Syntax: storm kill topology-name [-w wait-time-secs]
+
+	如何停止集群
+		hadoop： stop-all.sh
+		kill -9 pid, pid....
+
+
+Storm集群的部署规划
+	hadoop000   192.168.199.102
+	hadoop001   192.168.199.247
+	hadoop002   192.168.199.138 
+
+	每台机器的host映射：/etc/hosts
+		192.168.199.102 hadoop000
+		192.168.199.247 hadoop001
+		192.168.199.138 hadoop002
+
+	hadoop000: zk nimbus  supervisor
+	hadoop001: zk 		  supervisor
+	hadoop002: zk         supervisor
+
+安装包的分发: 从hadoop000机器做为出发点
+	scp  xxxx  hadoop@hadoop001:~/software
+	scp  xxxx  hadoop@hadoop002:~/software
+
+jdk的安装
+	解压
+	配置到系统环境变量
+	验证
+
+ZK分布式环境的安装
+	1. 在conf/zoo.cfg文件中加上这三行配置
+		server.1=hadoop000:2888:3888
+		server.2=hadoop001:2888:3888
+		server.3=hadoop002:2888:3888
+	2. 在conf/zoo.cfg中分别配置每个zk节点的dataDir, 在dataDir目录中创建一个myid的文件, 里面的内容分别写1, 2, 3
+		hadoop000的dataDir目录: myid的值1
+		hadoop001的dataDir目录: myid的值2
+		hadoop002的dataDir目录: myid的值3
+	3. 在每个节点上启动zk: zkServer.sh start
+	4. 在每个节点上查看当前机器zk的状态: zkServer.sh status
+
+
+Storm集群
+	$STORM_HOME/conf/storm.yaml
+		storm.zookeeper.servers:
+		     - "hadoop000"
+		     - "hadoop001"
+		     - "hadoop002"
+
+		storm.local.dir: "/home/hadoop/app/tmp/storm"
+
+		supervisor.slots.ports:
+		     - 6700
+		     - 6701
+		     - 6702
+		     - 6703
+
+启动
+	hadoop000: nimbus  supervisor(ui,logviewer)
+	hadoop001: supervisor(logviewer)
+	hadoop002: supervisor(logviewer)
+
+nimbus  启动主节点
+	nohup sh storm nimbus &
+supervisor 启动从节点
+	nohup sh storm supervisor &
+ui  启动UI界面
+	nohup sh storm ui &
+logviewer 启动日志查看服务
+	nohup sh storm logviewer &
+
+
+启动完所有的进程之后，查看
+[hadoop@hadoop000 bin]$ jps
+7424 QuorumPeerMain
+8164 Supervisor
+7769 nimbus
+8380 logviewer
+7949 core
+
+[hadoop@hadoop001 bin]$ jps
+3142 logviewer
+2760 QuorumPeerMain
+2971 Supervisor
+
+[hadoop@hadoop002 bin]$ jps
+3106 logviewer
+2925 Supervisor
+2719 QuorumPeerMain
+
+提交作业:
+storm jar /home/hadoop/lib/storm-1.0.jar com.imooc.bigdata.ClusterSumStormTopology
+
+目录树
+	storm.local.dir
+		# 显示的是正在运行的topology信息
+		nimbus/inbox:stormjar-....jar
+		supervisor/stormdist
+			ClusterSumStormTopology-1-1511599690
+			│   │       ├── stormcode.ser
+			│   │       ├── stormconf.ser
+			│   │       └── stormjar.jar
+
+=========================================
+
+并行度
+	1. 在storm集群中, 每个节点(supervisor)上, 可以运行一个或者多个worker进程. (默认是4个)
+	2. 一个topology可以运行在一个或者多个worker进程上的
+	3. 一个worker进程只能运行一个topology
+	4. 在一个worker进程中, 可以运行多个executor线程, 来为某一个特定的topology服务.
+	5. 在一个executor线程中, 可以运行多个task, 这些task要运行相同的类型, 也就是要么task是bolt, 要么task是spout
+	6. 每一个task运行真正的数据处理任务, 是storm中的最小单元
+
+
+	一个worker进程执行的是一个topo的子集
+	一个worker进程会启动n个executor线程来执行一个topo的一部分
+	一个运行的topo就是由集群中多台物理机上的多个worker进程组成
+
+	executor是一个被worker进程启动的单独线程，每个executor只会运行1个topo的一个component
+	task是最终运行spout或者bolt代码的最小执行单元
+
+	默认：
+		一个supervisor节点最多启动4个worker进程  
+		每一个topo默认占用一个worker进程         
+		每个worker进程会启动一个executor        
+		每个executor启动一个task                
+	可以自己设置, 也就是设置storm的并行度
+
+
+当启动一个storm作业, 其中包含一个spout, 一个bolt, 但是在ui中查看时, 发现:
+	本来总共有4个workers, 现在变成了三个workers空闲, 一个worker在运行
+	运行的那个worker中有三个executor, 三个task
+	但一个spout对应一个task, 一个bolt对应一个task, 多出来的那个task(executor)是谁占用呢?
+		是acker, 确保消息收到, 需要单独占用一个线程 导致的
+
+Config config = new Config();
+//设置worker数量
+config.setNumWorkers(2);
+//设置ack数量
+config.setNumAckers(0);
+
+//最后一个参数, 就是设置executor的数量, 也叫设置并行度
+builder.setSpout("DataSourceSpout", new DataSourceSpout(), 2);
+builder.setBolt("SumBolt", new SumBolt(), 2).shuffleGrouping("DataSourceSpout");
+
+builder.setBolt("SumBolt", new SumBolt(), 2)
+		.setNumTasks(4) // 设置task的数量
+		.shuffleGrouping("DataSourceSpout");
+
+ack的数量, 也就是executor会多出来的ack的数量, 和worker数量一致
+
+可以通过命令在不重启storm任务的情况下, 重新调整worker, executor, task的数量 -- rebanlance命令
+
+==============================================
+
+分组策略:
+
+shuffle grouping:
+    tuples会随机分发到不同的bolt中
+
+fields grouping:
+    根据字段名分组, 相同字段名的会进入同一个task中
+    
+partial key grouping:
+    根据字段名分组, 相同字段名的会进入同一个task中, 但会进行负载均衡的处理
+
+all grouping:
+    每个tuple都会进入所有的task中
+
+global grouping:
+    所有的tuple都会进入编号最小的一个task中去

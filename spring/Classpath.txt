@@ -1,0 +1,17 @@
+WEB应用中的classpath专指项目WEB-INF/classes和WEB-INF/lib，web容器在启动时会对WEB-INF/classes和WEB-INF/lib目录下的class文件、配置文件以及jar文件进行加载，当然，配置文件的加载是根据web.xml中的配置来的，web容器并不会自动加载WEB-INF/classes下的配置文件。
+
+【classpath:】此配置表示告诉web容器去classpath（WEB-INF/classes和WEB-INF/lib）中去加载指定名称的配置文件，若是有同名文件，则只会加载一个。只会到你的class路径中查找找文件;
+
+【classpath*:】此配置表示告诉web容器去classpath（WEB-INF/classes和WEB-INF/lib）中去加载指定名称的配置文件，若是有同名文件则会全部加载。不仅包含class路径，还包括jar文件中(class路径)进行查找。
+
+1、src不是classpath, WEB-INF/classes, WEB-INF/lib才是classpath，WEB-INF/ 是资源目录, 客户端不能直接访问。
+2、WEB-INF/classes目录存放src目录Java文件编译之后的class文件/xml/properties等资源配置文件，这是一个定位资源的入口。
+3、引用classpath路径下的文件，只需在文件名前加classpath:
+    <param-value>classpath:applicationContext-*.xml</param-value> 
+    <!-- 引用其子目录下的文件,如 -->
+    <param-value>classpath:context/conf/controller.xml</param-value>
+4、lib和classes同属classpath，两者的访问优先级为: lib>classes。
+
+把classpath理解成编译后target/classes这个文件夹, 里面有classes文件, 也有xml, properties等配置文件
+项目运行的时候先加载web.xml，然后通过web.xml中的配置信息(classpath:spring/spring-*.xml)
+    classpath：spring/spring-*.xml看做classes/spring/spring-*.xml

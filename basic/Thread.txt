@@ -1,186 +1,265 @@
-ThreadPoolExecutor:
+ThreadPoolExecutor: 可以非常方便的创建线程池对象。
+
+	1. newCachedThreadPool()方法创建的是无界线程池，可以进行线程自动回收，此类线程池中存放线程个数理论值为Integer.MAX_VALUE最大值。
+		ExecutorService executorService = Executors.newCachedThreadPool();
+		for (int i = 0; i < 5; i++) {
+			executorService.execute(run.new MyRunnable(" "+(i+1)));
+		}
+
+	2. 使用newCachedThreadPool(ThreadFactory)定制线程工厂, 构造函数ThreadFactory是实现定制Thread的作用
+		MyThreadFactory factory = run.new MyThreadFactory();
+		ExecutorService executorService = Executors.newCachedThreadPool(factory);
+		executorService.execute(new Runnable() {
+			@Override
+			public void run() {
+				System.out.println("当前线程的自定义名称为："+ Thread.currentThread().getName());
+			}
+		}); 
+
+		public class MyThreadFactory implements ThreadFactory{
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread thread = new Thread(r);
+				thread.setName("自定义名称："+new Date());
+				return thread;
+			}
+		}
+	
+	3. 使用newFixedThreadPool(int n) 方法创建有界线程池, 此方法创建的是有界线程池，也就是池中的线程的个数可以指定最大值。
+		ExecutorService executorService = Executors.newFixedThreadPool(3);
+        for (int i = 0; i < 5; i++) {
+            executorService.execute(run.new MyRunnable(" "+(i+1)));
+        }
+
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+        for (int i = 0; i < 5; i++) {
+            executorService.execute(run.new MyRunnable(" "+(i+1)));
+        }
+
+	ThreadPoolExecutor extends AbstractExecutorService implements ExecutorService extends Executor
+
 	Executor接口很简单，只有一个execute方法。
-	ExecutorService是Executor的子接口，增加了一些常用的对线程的控制方法，之后使用线程池主要也是使用这些方法。
-	AbstractExecutorService是一个抽象类。ThreadPoolExecutor就是实现了这个类。
+	ExecutorService是Executor的子接口，增加了一些常用的对线程的控制方法，之后使用线程池主要也是使用这些方法。比如submit, isShutdown等.
 
-	corePoolSize
-		核心线程数，默认情况下核心线程会一直存活，即使处于闲置状态也不会受存keepAliveTime限制。除非将allowCoreThreadTimeOut设置为true。
-	maximumPoolSize
-		线程池所能容纳的最大线程数。超过这个数的线程将被阻塞。当任务队列为没有设置大小的LinkedBlockingDeque时，这个值无效。	
-	keepAliveTime
-		非核心线程的闲置超时时间，超过这个时间就会被回收。
-	unit
-		指定keepAliveTime的单位，如TimeUnit.SECONDS。当将allowCoreThreadTimeOut设置为true时对corePoolSize生效。
-	workQueue
-		线程池中的任务队列.
-		常用的有三种队列，SynchronousQueue,LinkedBlockingDeque,ArrayBlockingQueue。
-	threadFactory
-		线程工厂，提供创建新线程的功能。ThreadFactory是一个接口，只有一个方法
-	RejectedExecutionHandler
-		当线程池中的资源已经全部使用，添加新线程被拒绝时，会调用RejectedExecutionHandler的rejectedExecution方法
+	ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,TimeUnit unit,BlockingQueue<Runnable> workQueue) 构造方法, 
+		corePoolSize
+			核心线程数，默认情况下核心线程会一直存活，即使处于闲置状态也不会受存keepAliveTime限制。除非将allowCoreThreadTimeOut设置为true。
+		maximumPoolSize
+			线程池所能容纳的最大线程数。超过这个数的线程将被阻塞。当任务队列为没有设置大小的LinkedBlockingDeque时，这个值无效。	
+		keepAliveTime
+			非核心线程的闲置超时时间，超过这个时间就会被回收。
+		unit
+			指定keepAliveTime的单位，如TimeUnit.SECONDS。当将allowCoreThreadTimeOut设置为true时对corePoolSize生效。
+		workQueue
+			线程池中的任务队列.
+			常用的有三种队列，SynchronousQueue,LinkedBlockingDeque,ArrayBlockingQueue。
+		threadFactory
+			线程工厂，提供创建新线程的功能。ThreadFactory是一个接口，只有一个方法
+		RejectedExecutionHandler
+			当线程池中的资源已经全部使用，添加新线程被拒绝时，会调用RejectedExecutionHandler的rejectedExecution方法
 
-	如果线程数量<=核心线程数量，那么直接启动一个核心线程来执行任务，不会放入队列中。
-	如果线程数量>核心线程数，但<=最大线程数，并且任务队列是LinkedBlockingDeque的时候，超过核心线程数量的任务会放在任务队列中排队。
-	如果线程数量>核心线程数，但<=最大线程数，并且任务队列是SynchronousQueue的时候，线程池会创建新线程执行任务，这些任务也不会被放在任务队列中。这些线程属于非核心线程，在任务完成后，闲置时间达到了超时时间就会被清除。
-	如果线程数量>核心线程数，并且>最大线程数，当任务队列是LinkedBlockingDeque，会将超过核心线程的任务放在任务队列中排队。也就是当任务队列是LinkedBlockingDeque并且没有大小限制时，线程池的最大线程数设置是无效的，他的线程数最多不会超过核心线程数。
-	如果线程数量>核心线程数，并且>最大线程数，当任务队列是SynchronousQueue的时候，会因为线程池拒绝添加任务而抛出异常。
+	如果线程数量 <= 核心线程数量，那么直接启动一个核心线程来执行任务，不会放入队列中。
+	如果线程数量 > 核心线程数，但 <= 最大线程数，并且任务队列是LinkedBlockingDeque的时候，超过核心线程数量的任务会放在任务队列中排队。
+	如果线程数量 > 核心线程数，但 <= 最大线程数，并且任务队列是SynchronousQueue的时候，线程池会创建新线程执行任务，这些任务也不会被放在任务队列中。这些线程属于非核心线程，在任务完成后，闲置时间达到了超时时间就会被清除。
+	如果线程数量 > 核心线程数，并且 > 最大线程数，当任务队列是LinkedBlockingDeque，会将超过核心线程的任务放在任务队列中排队。也就是当任务队列是LinkedBlockingDeque并且没有大小限制时，线程池的最大线程数设置是无效的，他的线程数最多不会超过核心线程数。
+	如果线程数量 > 核心线程数，并且 > 最大线程数，当任务队列是SynchronousQueue的时候，会因为线程池拒绝添加任务而抛出异常。
 
 
-AQS: AbstractQueuedSynchronized: 
-	类如其名，抽象的队列式的同步器，AQS定义了一套多线程访问共享资源的同步器框架，许多同步类实现都依赖于它，如常用的ReentrantLock/Semaphore/CountDownLatch...。
 
-	它维护了一个volatile int state（代表共享资源）和一个FIFO线程等待队列（多线程争用资源被阻塞时会进入此队列）。
+AQS: AbstractQueuedSynchronized 
+	
+	类如其名，抽象的队列式的同步器，AQS定义了一套多线程访问共享资源的同步器框架，许多同步类实现都依赖于它，如常用的ReentrantLock/Semaphore/CountDownLatch
+
+	它维护了一个volatile int state（代表共享资源）和一个FIFO线程等待队列（多线程争用资源被阻塞时会进入此队列）
 		getState()
 		setState()
 		compareAndSetState()
 
-	AQS定义两种资源共享方式：Exclusive（独占，只有一个线程能执行，如ReentrantLock）和Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）。
-
-	不同的自定义同步器争用共享资源的方式也不同。自定义同步器在实现时只需要实现共享资源state的获取与释放方式即可，至于具体线程等待队列的维护（如获取资源失败入队/唤醒出队等），AQS已经在顶层实现好了。
-
-	以ReentrantLock为例，state初始化为0，表示未锁定状态。A线程lock()时，会调用tryAcquire()独占该锁并将state+1。此后，其他线程再tryAcquire()时就会失败，直到A线程unlock()到state=0（即释放锁）为止，其它线程才有机会获取该锁。当然，释放锁之前，A线程自己是可以重复获取此锁的（state会累加），这就是可重入的概念。但要注意，获取多少次就要释放多么次，这样才能保证state是能回到零态的。
-
-	一般来说，自定义同步器要么是独占方法，要么是共享方式，他们也只需实现tryAcquire-tryRelease、tryAcquireShared-tryReleaseShared中的一种即可。但AQS也支持自定义同步器同时实现独占和共享两种方式，如ReentrantReadWriteLock。
-
-	再以CountDownLatch以例，任务分为N个子线程去执行，state也初始化为N（注意N要与线程个数一致）。这N个子线程是并行执行的，每个子线程执行完后countDown()一次，state会CAS减1。等到所有子线程都执行完后(即state=0)，会unpark()主调用线程，然后主调用线程就会从await()函数返回，继续后余动作。
-
-	一般来说，自定义同步器要么是独占方法，要么是共享方式，他们也只需实现tryAcquire-tryRelease、tryAcquireShared-tryReleaseShared中的一种即可。但AQS也支持自定义同步器同时实现独占和共享两种方式，如ReentrantReadWriteLock。
-
-	调用自定义同步器的tryAcquire()尝试直接去获取资源，如果成功则直接返回；
-	没成功，则addWaiter()将该线程加入等待队列的尾部，并标记为独占模式；
-	acquireQueued()使线程在等待队列中休息，有机会时（轮到自己，会被unpark()）会去尝试获取资源。获取到资源后才返回。如果在整个等待过程中被中断过，则返回true，否则返回false。
+	AQS定义两种资源共享方式：
+		Exclusive（独占，只有一个线程能执行，如ReentrantLock）
+		Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）
 	
-基于AQS的锁(比如ReentrantLock)原理大体是这样:
-	有一个state变量，初始值为0，假设当前线程为A,每当A获取一次锁，status++. 释放一次，status--.锁会记录当前持有的线程。
-	当A线程拥有锁的时候，status>0. B线程尝试获取锁的时候会对这个status有一个CAS(0,1)的操作，尝试几次失败后就挂起线程，进入一个等待队列。
-	如果A线程恰好释放，--status==0, A线程会去唤醒等待队列中第一个线程，即刚刚进入等待队列的B线程，B线程被唤醒之后回去检查这个status的值，尝试CAS(0,1),而如果这时恰好C线程也尝试去争抢这把锁
+	一般来说，自定义同步器要么是独占方法，要么是共享方式，他们也只需实现tryAcquire-tryRelease、tryAcquireShared-tryReleaseShared中的一种即可。但AQS也支持自定义同步器同时实现独占和共享两种方式，如ReentrantReadWriteLock。
 
-	非公平锁实现：
-		C直接尝试对这个status CAS(0,1)操作，并成功改变了status的值，B线程获取锁失败，再次挂起，这就是非公平锁，B在C之前尝试获取锁，而最终是C抢到了锁。
-	公平锁：
-		C发现有线程在等待队列，直接将自己进入等待队列并挂起,B获取锁
+		①isHeldExclusively()：该线程是否正在独占资源。只有用到condition才需要去实现它。
+		②tryAcquire(int)：独占方式。尝试获取资源，成功则返回true，失败则返回false。
+		③tryRelease(int)：独占方式。尝试释放资源，成功则返回true，失败则返回false。
+		④tryAcquireShared(int)：共享方式。尝试获取资源。负数表示失败；0表示成功，但没有剩余可用资源；正数表示成功，且有剩余资源。
+		⑤tryReleaseShared(int)：共享方式。尝试释放资源，成功则返回true，失败则返回false。
+
+	不同的自定义同步器争用共享资源的方式也不同。
+	自定义同步器在实现时只需要实现共享资源state的获取与释放方式即可，线程等待队列的维护（如获取资源失败入队/唤醒出队等），AQS已经在顶层实现好了。
+
+	可重入锁 / 公平锁 / 非公平锁:
+		以ReentrantLock为例，state初始化为0，表示未锁定状态。A线程lock()时，会调用tryAcquire()独占该锁并将state+1。此后，其他线程再tryAcquire()时就会失败, 然后进入等待队列中，直到A线程unlock(), state--, 直到state=0（即释放锁），其它线程才有机会获取该锁。
+		当A线程拥有锁的时候，status>0. B线程尝试获取锁的时候会对这个status有一个CAS(0,1)(set state = 1)的操作，尝试几次失败后就挂起线程，进入一个等待队列。
+		如果A线程恰好释放，--status==0, A线程会去唤醒等待队列中第一个线程，即刚刚进入等待队列的B线程，B线程被唤醒之后回去检查这个status的值，尝试CAS(0,1),而如果这时恰好C线程也尝试去争抢这把锁
+			非公平锁实现：
+				C直接尝试对这个status CAS(0,1)操作，并成功改变了status的值，B线程获取锁失败，再次挂起，这就是非公平锁，B在C之前尝试获取锁，而最终是C抢到了锁。
+			公平锁：
+				C发现有线程在等待队列，直接将自己进入等待队列并挂起,B获取锁
+			可重入锁:
+				释放锁之前，A线程自己是可以重复获取此锁的（state会累加），这就是可重入的概念。但要注意，获取多少次就要释放多么次，这样才能保证state是能回到零态的。
+
+		再以CountDownLatch以例，任务分为N个子线程去执行，state也初始化为N（注意N要与线程个数一致）。这N个子线程是并行执行的，每个子线程执行完后countDown()一次，state会CAS(Compare-and-Swap 比较和交换)减1。等到所有子线程都执行完后(即state=0)，会unpark()调用主线程，然后主调用线程就会从await()函数返回，继续剩余动作。
+
+		调用自定义同步器的tryAcquire()尝试直接去获取资源，如果成功则直接返回；没成功，则addWaiter()将该线程加入等待队列的尾部，并标记为独占模式；
+		acquireQueued()使线程在等待队列中休息，有机会时（轮到自己，会被unpark()）会去尝试获取资源。获取到资源后才返回
+	
 
 
-
-假设t1，t2先后两个线程，都执行如下代码：synchronized(Obj) {
-    Obj.wait(); 
-}
-t1先进，最后在Obj.wait()下卡住，这时java管t1的状态waitting状态t2后进，直接在第一行就卡住了，这时java叫t2为blocked状态。请注意，blocked是过去分词，意味着他是被卡住的(无辜啊，全是泪)。因为这段代码只让一条线程运行。同时，jvm是知道怎么结束blocked的，只要别的线程退出这段代码，他就会自动让你进去。也就是说别的线程无需唤醒你，由jvm自动来干。而waiiting是说我调用wait()等函数，主动卡住自己(我在等一个白富美)，请jvm在满足某种条件后(白富美发消息让我们晚上见)，比如另条线程调用了notify()后，把我唤醒。这个唤醒的责任在于别的线程（白富美）明确的调用一些唤醒函数。做这样的区分，是jvm出于管理的需要，做了这种区分，比如两个原因的线程放两个队列里管理，如果别的线程运行出了synchronized这段代码，我只需要去blocked队列，放个出来。而某人调用了notify()，我只需要去waitting队列里取个出来。P.S. 从linux内核来看，这些线程都是等待状态，没区别，区别只在于java的管理需要。
-
-
-class MyThread implements Runnable {
-//    static  int i = 0;
-     static AtomicInteger ai=new AtomicInteger(0);
-      
- 
-    public void run() {
-        for (int m = 0; m < 1000000; m++) {
-            ai.getAndIncrement();
-        }
-    }
-};
- 
-public class TestAtomicInteger {
-    public static void main(String[] args) throws InterruptedException {
-        MyThread mt = new MyThread();
- 
-        Thread t1 = new Thread(mt);
-        Thread t2 = new Thread(mt);
-        t1.start();
-        t2.start();
-        Thread.sleep(500);
-        System.out.println(MyThread.ai.get());
-    }
-}
-
-// setup to use Unsafe.compareAndSwapInt for updates  
-private static final Unsafe unsafe = Unsafe.getUnsafe();  
-private static final long valueOffset;  
-private volatile int value;  
-这里， unsafe是java提供的获得对对象内存地址访问的类，注释已经清楚的写出了，它的作用就是在更新操作时提供“比较并替换”的作用。实际上就是AtomicInteger中的一个工具。
-
-valueOffset是用来记录value本身在内存的编译地址的，这个记录，也主要是为了在更新操作在内存中找到value的位置，方便比较。
-
-注意：value是用来存储整数的时间变量，这里被声明为volatile，就是为了保证在更新操作时，当前线程可以拿到value最新的值（并发环境下，value可能已经被其他线程更新了）。
-
-这里，我们以自增的代码为例，可以看到这个并发控制的核心算法：
-
-/**
-* Atomically increments by one the current value.
-*
-* @return the updated value
-*/
-public final int incrementAndGet() {
-	for (;;) {
-		//这里可以拿到value的最新值
-		int current = get();
-		int next = current + 1;
-		if (compareAndSet(current, next))
-			return next;
+有t1，t2先后两个线程，都需要执行如下代码：
+	synchronized(Obj.class) {
+		Obj.wait(); 
 	}
-}
+	t1先进，最后在Obj.wait()下卡住，这时, t1线程是waitting状态.
+	t2后进，在第一行就卡住了，这时, t2线程为blocked状态。
+	jvm知道如何结束blocked状态, 不需要别的线程唤醒t2(只要t1释放锁, 就可以解除blocked状态)
+	但waiting状态的结束, 不由jvm控制, 必须由别的线程调用notify()方法之后, 才能结束.
+	从linux内核来看，t1, t2线程都是等待状态，没区别，区别只在于jvm的管理需要
 
-public final boolean compareAndSet(int expect, int update) {
-	//使用unsafe的native方法，实现高效的硬件级别CAS
-	return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
-}
+	synchronized放在普通方法上, 内置锁(java中任何对象都可以作为锁)就是当前类的实例
+	synchronized放在静态方法上, 内置锁是当前类的Class对象(全局只有一份)
+	synchronized修饰代码块的时候, 锁对象可以任意指定.
+	static的方法属于类方法，它属于这个Class（注意：这里的Class不是指Class的某个具体对象），那么static获取到的锁，是属于类的锁。而非static方法获取到的锁，是属于当前对象的锁。所以，他们之间不会产生互斥。
 
-1。interrupt()的作用是中断本线程的执行。
-	本线程中断自己是被允许的；其它线程调用本线程的interrupt()方法时，会通过checkAccess()检查权限。这有可能抛出SecurityException异常。
-2。如果本线程是处于阻塞状态：
+内置锁 -- 与synchronized有关的概念:
+	内置锁获得锁和释放锁是隐式的
+	每个java对象都可以用做一个实现同步的锁，这些锁就是内置锁。线程进入同步代码块或同步方法时会自动获得该锁，在退出同步代码块或同步方法时或代码块中抛出异常退出时会释放该锁。获得内置锁的唯一途径就是进入这个锁的保护的同步代码块或方法。
+	内置锁是一个互斥锁，这意味着最多只有一个线程能够获得该锁，当线程A尝试去获得线程B持有的内置锁时，线程A必须等待或者阻塞，直到线程B释放这个锁，如果B线程不释放这个锁，那么A线程将永远等待下去。
+
+与Synchronized配套使用的通信方法通常有wait(),notify()
+	wait()方法会立即释放当前锁，并进入等待状态，等待到相应的notify并重新获得锁过后才能继续执行；
+	notify()不会立刻立刻释放锁，必须要等notify()所在线程执行完synchronized块中的所有代码才会释放。在线程调用notify方法时，会随机选择相应对象的等待队列的一个线程将其唤醒，而不是按照FIFO的方式，如果有强烈的公平性要求，比如FIFO就无法满足
+
+Synchronized在JDK1.5及之前性能（主要指吞吐率）比较差，扩展性也不如ReentrantLock。但是JDK1.6以后，修改了管理内置锁的算法，使得Synchronized和标准的ReentrantLock性能差别不大。
+
+原子类: AtomicInteger
+	class MyThread implements Runnable {
+	//    static  int i = 0;
+		public static AtomicInteger ai = new AtomicInteger(0);
+		
+		public void run() {
+			for (int m = 0; m < 1000000; m++) {
+				ai.getAndIncrement();
+			}
+		}
+	};
+	
+	public class TestAtomicInteger {
+		public static void main(String[] args) throws InterruptedException {
+			MyThread mt = new MyThread();
+	
+			Thread t1 = new Thread(mt);
+			Thread t2 = new Thread(mt);
+			t1.start();
+			t2.start();
+			Thread.sleep(500);
+			System.out.println(MyThread.ai.get());
+		}
+	}
+
+CAS:
+	锁是一种悲观策略，它总是假定每一次的临界区操作会发生冲突，因此每次操作都小心翼翼。当多线程访问临界区资源时，宁愿牺牲性能也要让线程等待。
+	无锁是乐观的策略，它假定对临界区的访问时没有冲突的，既然没有冲突，那就不用等待了。无锁基于比较交换技术（CAS：compare and swap）实现。
+	相对于锁，CAS会使程序更为复杂，但由于其是非阻塞的，它对死锁天生免疫。基于CAS的无锁方式完全没有锁竞争带来的系统开销，也不存在线程间频繁调度带来的开销，它性能更为优越。
+
+	具体实现:
+		CAS(V,E,N);
+		其中，V表示要更新的变量，E表示预期值，N表示新值。仅当V变量值等于E时，才将V值设为N；如果V值与E不相等，说明已经有其它线程在该过程中更新了V的值，那此时当前线程什么都不做。
+	
+		1、当多个线程同时使用CAS操作一个变量时，只会有一个线程胜出，并成功更新值，其它线程均会失败。失败的线程不会挂起，仅是被告知失败，并且运行再次尝试，当然，也运行失败的线程放弃操作。
+		2、在硬件层面上，大部分处理器都已经支持原子化的CAS指令
+	
+	synchronized是阻塞同步的方式
+	常见的非阻塞同步有：
+ 	    a.volatile 变量：轻量级的线程同步，不会引起线程调度，提供可见性，但是不提供原子性
+      	b.CAS 原子指令：轻量级线程同步，不会引起线程调度，提供可见性和原子性。
+
+	常用的非阻塞算法的容器包括：ConcurrentLinkedQueue，SynchronousQueue，Exchanger 和 ConcurrentSkipListMap，包括J.U.C里面的整数原子类AtomicInteger等
+
+		public static AtomicInteger race = new AtomicInteger();  
+	
+		public static void main(String[] args) {  
+			// 这是自增方法，我们看看如何实现了 类似 i++ 的功能。  
+			race.incrementAndGet();  
+		}  
+
+		//----------------------------------------------
+	  	
+		public final int incrementAndGet() {  
+			for (;;) {  
+				// 先获得当前值  
+				int current = get();  
+				// 然后计算增加后的值，也就是我们的预期值  
+				int next = current + 1;  
+				// 然后预期值和 当前值进行比较（看下面）  
+				if (compareAndSet(current, next))  
+					return next;  
+			}  
+		}  
+  
+		public final int get() {  
+			return value;  
+		}  
+		
+		// 这里是通过当前类在内存中的值,valueOffset,  
+		// 期望的值expect，需要更新的值update  
+		// 进行比较，如果valueOffset 表示的值，和当前except 值等，那么我们执行修改，  
+		// 否则表示已经被其他线程更改了，不执行，循环继续。  
+		public final boolean compareAndSet(int expect, int update) {  
+			return unsafe.compareAndSwapInt(this, valueOffset, expect, update);  
+		}
+
+		关于valueOffset 的值的取得，是通过Unsafe.getUnsafe()获得实例的 objectFieldOffset 方法获得的，是native 方法，JAVA 仅仅允许启动类加载(Bootstrap ClassLoader) 的类才能访问，反射也可以的，这是它内部代码： 
+
+		private static final Unsafe unsafe = Unsafe.getUnsafe();  
+		private static final long valueOffset;  
+		
+		static {  
+			try {  
+				// 这里可以定位当前类字段value在内存中的值  
+				valueOffset = unsafe.objectFieldOffset(AtomicInteger.class.getDeclaredField("value"));  
+			} catch (Exception ex) { 
+				throw new Error(ex); 
+			}  
+		}  
+
+		CAS的ABA问题
+		从上面CAS 的原理分析，假设变量i 的原始值是i=5,A 线程通过get() 方法，获取值等于V，然后这时候B线程用同样的方式获得V，然后改成了6,(中途可能被其他使用)，然后又改回成5.这时候 A线程去判断的时候，发现内存值还是5，说明没有改变，就执行更新。但是我们发现 在中途其实已经改变过了，又改变回来了而已，这就是ABA 问题。
+		
+		// setup to use Unsafe.compareAndSwapInt for updates  
+		private static final Unsafe unsafe = Unsafe.getUnsafe();  
+		private static final long valueOffset;  
+		private volatile int value;  
+		这里， unsafe是java提供的获得对对象内存地址访问的类，注释已经清楚的写出了，它的作用就是在更新操作时提供“比较并替换”的作用。实际上就是AtomicInteger中的一个工具。
+
+		valueOffset是用来记录value本身在内存的编译地址的，这个记录，也主要是为了在更新操作在内存中找到value的位置，方便比较。
+
+		注意：value是用来存储整数的时间变量，这里被声明为volatile，就是为了保证在更新操作时，当前线程可以拿到value最新的值（并发环境下，value可能已经被其他线程更新了）。
+
+
+1. interrupt()的作用是中断本线程的执行。
+	本线程中断自己是被允许的；
+	其它线程调用本线程的interrupt()方法时，会通过checkAccess()检查权限。这有可能抛出SecurityException异常
+
+2. 如果本线程是处于阻塞状态：
 	调用线程的wait(), wait(long)或wait(long, int)会让它进入等待(阻塞)状态，或者调用线程的join(), join(long), join(long, int), sleep(long), sleep(long, int)也会让它进入阻塞状态。
 
-	若线程在阻塞状态时，调用了它的interrupt()方法，那么它的“中断状态”会被清除并且会收到一个InterruptedException异常。例如，线程通过wait()进入阻塞状态，此时通过interrupt()中断该线程；调用interrupt()会立即将线程的中断标记设为“true”，但是由于线程处于阻塞状态，所以该“中断标记”会立即被清除为“false”，同时，会产生一个InterruptedException的异常。
+	若线程在阻塞状态时，调用了它的interrupt()方法，那么它的“中断状态”会被清除并且会收到一个InterruptedException异常。
+	例如，线程通过wait()进入阻塞状态，此时通过interrupt()中断该线程；
+	调用interrupt()会立即将线程的中断标记设为“true”，但是由于线程处于阻塞状态，所以该“中断标记”会立即被清除为“false”，同时，会产生一个InterruptedException的异常。
 
-3。如果线程被阻塞在一个Selector选择器中，那么通过interrupt()中断它时；线程的中断标记会被设置为true，并且它会立即从选择操作中返回。
-如果不属于前面所说的情况，那么通过interrupt()中断线程时，它的中断标记会被设置为“true”。
-
-4。中断一个“已终止的线程”不会产生任何操作
-
-java interrupt()方法只是设置线程的中断标记，当对处于阻塞状态的线程调用interrupt方法时（处于阻塞状态的线程是调用sleep, wait, join 的线程)，会抛出InterruptException异常，而这个异常会清除中断标记。
-
-static的方法属于类方法，它属于这个Class（注意：这里的Class不是指Class的某个具体对象），那么static获取到的锁，是属于类的锁。而非static方法获取到的锁，是属于当前对象的锁。所以，他们之间不会产生互斥。
+java interrupt()方法只是设置线程的中断标记，当对处于阻塞状态的线程调用interrupt方法时，会抛出InterruptException异常，而这个异常会清除中断标记。
 
 
-当synchronized锁住一个对象后，别的线程如果也想拿到这个对象的锁，就必须等待这个线程执行完成释放锁，才能再次给对象加锁，这样才达到线程同步的目的。即使两个不同的代码段，都要锁同一个对象，那么这两个代码段也不能在多线程环境下同时运行。
-
-这种机制确保了同一时刻对于每一个类实例，其所有声明为 synchronized 的成员函数中至多只有一个处于可执行状态，从而有效避免了类成员变量的访问冲突。
-
-可以调用interrupt()方法把当前睡眠的线程唤醒。
-
-
-可重入锁，也叫做递归锁，指的是同一线程 外层函数获得锁之后 ，内层递归函数仍然有获取该锁的代码，但不受影响。
-在JAVA环境下 ReentrantLock 和synchronized 都是 可重入锁。
-
-public class Test implements Runnable{
- public synchronized void get(){
-  System.out.println(Thread.currentThread().getId());
-  set();
- }
- public synchronized void set(){
-  System.out.println(Thread.currentThread().getId());
- }
- @Override
- public void run() {
-  get();
- }
- public static void main(String[] args) {
-  Test ss=new Test();
-  new Thread(ss).start();
-  new Thread(ss).start();
-  new Thread(ss).start();
- }
-}
-
-可重入锁指的是在一个线程中可以多次获取同一把锁，比如：
-一个线程在执行一个带锁的方法，该方法中又调用了另一个需要相同锁的方法，则该线程可以直接执行调用的方法，而无需重新获得锁；
-
-最大的作用是避免死锁。在很多情况下线程需要多次进入锁内执行任务。我讲一个应用场景就是比如数据库事务的实现过程中。场景：add操作将会获取锁，若一个事务当中多次add，就应该允许该线程多次进入该临界区。synchronized锁也是个可重入锁，比如一个类当中的两个非静态方法都被synchronized修饰，则线程在获取synchronized锁访问一个方法时是可以进入另一个synchronized方法的（PS：应该也能进入static方法的synchronized修饰临界区的，因为是两把不同的锁，表现的不是可重入的特性）
-
+可重入锁，也叫做递归锁，指的是同一线程外层函数获得锁之后 ，内层递归函数仍然有获取该锁的代码，不受影响。也就是在一个线程中可以多次获取同一把锁, ReentrantLock和synchronized都是可重入锁。
+	一个线程在执行一个带锁的方法，该方法中又调用了另一个需要相同锁的方法，则该线程可以直接执行调用的方法，而无需重新获得锁；
+	最大的作用是避免死锁。在很多情况下线程需要多次进入锁内执行任务。
+		比如数据库事务的实现过程中。add操作将会获取锁，若一个事务当中多次add，就应该允许该线程多次进入该临界区。
 
 与可重入锁synchronized和Lock不同的就是自旋锁。
-若有同一线程两调用lock() ，会导致第二次调用lock位置进行自旋，产生了死锁
-说明这个锁并不是可重入的。
+若有同一线程两调用lock() ，会导致第二次调用lock位置进行自旋，产生了死锁说明这个锁并不是可重入的。
 
 
 1. 基本概念 

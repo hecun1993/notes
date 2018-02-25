@@ -1,0 +1,41 @@
+
+class ServletContextEvent extends EventObject(抽象类, 里面有构造方法)
+    public ServletContextEvent(ServletContext source) {
+        super(source); //事件发生的源(比如, Servlet本身, 鼠标点击, 传入的源可能是鼠标的位置等)
+    }
+    public ServletContext getServletContext() {
+        return (ServletContext) super.getSource();
+    }
+
+interface ServletContextListener extends EventListener(标记接口)
+
+ServletContextListener 接口能监听 ServletContext 对象（web应用）的生命周期。当 Servlet 容器启动或者终止web应用时，会触发 ServletContextEvent 事件。该事件由 ServletContextListener 处理，在ServletContextListener 接口中定义了处理该事件的两个方法：
+    //当Servlet容器终止web应用时调用该方法。在调用该方法之前，容器会先销毁所有的Servlet和Filter。
+    void contextDestroyed(ServletContextEvent sce) 
+
+    //当Servlet容器启动web应用时调用如下方法，调用后容器再初始化filter，并对需要被初始化的Servlet进行初始化。
+    void contextInitialized(ServletContextEvent sce) 
+
+其他监听器:
+    ServletContextAttributeListener监听对ServletContext属性的操作
+        比如增加、删除、修改属性。
+
+    HttpSessionListener监听HttpSession的操作
+        当创建一个Session时，激发sessionCreated(HttpSessionEvent se)方法；
+        当销毁一个Session时，激发sessionDestroyed(HttpSessionEvent se)方法。
+
+    HttpSessionAttributeListener监听HttpSession中的属性的操作
+        当在Session增加一个属性时，激发attributeAdded(HttpSessionBindingEvent se) 方法；
+        当在Session删除一个属性时，激发attributeRemoved(HttpSessionBindingEvent se) 方法；
+        当在Session属性被重新设置时，激发attributeReplaced(HttpSessionBindingEvent se) 方法
+
+class ContextLoadListener extends ContextLoad implements ServletContextListener {
+    public ContextLoadListener(WebApplicationContext context) {
+        super(context);
+    }
+    public void contextInitialized(ServletContextEvent event) {
+        this.initWebApplicationContext(event.getServletContext());
+    }
+    //在ContextLoad中
+    this.createWebApplicationContext(servletContext); 当容器启动的时候, 创建spring的上下文
+}

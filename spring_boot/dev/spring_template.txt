@@ -1,0 +1,92 @@
+#### Spring Boot返回前端页面的两种方式
+
+- 方式一
+```java
+//返回值：String（前端页面名称）
+//参数：Model model
+//model.addAttribute("currentCity", city.getResult());
+//返回值: return "redirect:/index"; || return "index";
+
+@GetMapping("rent/house")
+public String rentHousePage(@ModelAttribute RentSearch rentSearch,
+                            Model model, HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+    //首先, 查询房源信息必须要有城市信息
+    //如果搜索类里没有, 就去session中拿, 如果session还没有, 就跳转到主页
+    if (rentSearch.getCityEnName() == null) {
+        String cityEnNameInSession = (String) session.getAttribute("cityEnName");
+        if (cityEnNameInSession == null) {
+            redirectAttributes.addAttribute("msg", "must_chose_city");
+            return "redirect:/index";
+        } else {
+            rentSearch.setCityEnName(cityEnNameInSession);
+        }
+    } else {
+        session.setAttribute("cityEnName", rentSearch.getCityEnName());
+    }
+
+    //查出这个城市信息
+    ServiceResult<SupportAddressDTO> city = addressService.findCity(rentSearch.getCityEnName());
+    if (!city.isSuccess()) {
+        redirectAttributes.addAttribute("msg", "must_chose_city");
+        return "redirect:/index";
+    }
+    model.addAttribute("currentCity", city.getResult());
+
+    //查出该城市下的所有区域信息
+    ServiceMultiResult<SupportAddressDTO> addressResult = addressService.findAllRegionsByCityName(rentSearch.getCityEnName());
+    if (addressResult.getResult() == null || addressResult.getTotal() < 1) {
+        redirectAttributes.addAttribute("msg", "must_chose_city");
+        return "redirect:/index";
+    }
+
+    ServiceMultiResult<HouseDTO> serviceMultiResult = houseService.query(rentSearch);
+
+    model.addAttribute("total", serviceMultiResult.getTotal());
+    model.addAttribute("houses", serviceMultiResult.getResult());
+
+    if (rentSearch.getRegionEnName() == null) {
+        rentSearch.setRegionEnName("*");
+    }
+
+    model.addAttribute("searchBody", rentSearch);
+    model.addAttribute("regions", addressResult.getResult());
+
+    //前端需要展示的价格区间(是一个map)
+    model.addAttribute("priceBlocks", RentValueBlock.PRICE_BLOCK);
+    model.addAttribute("areaBlocks", RentValueBlock.AREA_BLOCK);
+
+    //用户选择的价格区间(就是一个RentValueBlock)
+    model.addAttribute("currentPriceBlock", RentValueBlock.matchPrice(rentSearch.getPriceBlock()));
+    model.addAttribute("currentAreaBlock", RentValueBlock.matchArea(rentSearch.getAreaBlock()));
+
+    return "rent-list";
+}
+```
+
+- 方式二
+```java
+//返回值: ModelAndView
+//返回: return new ModelAndView("页面的名称(从resources/templates/下写起)", "整体的模版名", model)
+//参数: Model model
+//model.addAttribute("title", "老卫的天气预报");
+//前端: <h3 th:text=${reportModel.title}></h3>
+
+@GetMapping("/cityId/{cityId}")
+public ModelAndView getReportByCityId(@PathVariable("cityId") String cityId, Model model) throws Exception {
+    model.addAttribute("title", "老卫的天气预报");
+    model.addAttribute("cityId", cityId);
+    model.addAttribute("cityList", cityDataService.listCity());
+    model.addAttribute("report", weatherReportService.getDataByCityId(cityId));
+    return new ModelAndView("weather/report", "reportModel", model);
+}
+```
+
+
+Model(接口)和ModelAndView之间的区别:
+    ModelAndView需要分别设置数据和视图
+        modelAndView.addObject("item", item);
+        modelAndView.setViewName("itemEdit");
+    Model只需要设置数据, 然后以字符串形式返回视图即可.
+        model.addAttribute("item", item);
+        return "itemEdit";

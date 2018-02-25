@@ -1,0 +1,123 @@
+#### WebApplicationContext
+
+WebApplicationContext是专门为Web应用准备的，它允许从相对于Web根目录的路径中装载配置文件完成初始化工作。
+
+##### 获取WebApplicationContext的方法:
+方法一:
+    HttpServletRequest request = ServletActionContext.getRequest();
+    ServletContext servletContext = request.getServletContext();
+    WebApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(servletContext);
+
+方法二:
+    WebApplicationContext ctx1 = (WebApplicationContext)servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+
+从WebApplicationContext中可以获得ServletContext的引用，整个Web应用上下文对象将作为属性放置到ServletContext中，以便Web应用环境可以访问Spring应用上下文。
+
+Spring专门为此提供一个工具类 WebApplicationContextUtils，通过该类的getWebApplicationContext(ServletContext sc)方法，即可以从ServletContext中获取WebApplicationContext实例。
+
+WebApplicationContext定义了一个常量ROOT_WEB_APPLICATION_ CONTEXT_ATTRIBUTE，在上下文启动时，WebApplicationContext实例即以此为键放置在ServletContext的属性列表中，因此我们可以直接通过以下语句从Web容器中获取WebApplicationContext：
+
+WebApplicationContext wac = (WebApplicationContext)servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+
+Spring的Web应用上下文和Web容器的上下文就可以实现互访.
+    1. WebApplicationContext#getServletContext();
+    2. WebApplicationContextUtils#getWebApplicationContext
+
+##### WebApplicationContext的初始化
+
+WebApplicationContext的初始化方式和BeanFactory、ApplicationContext有所区别，因为WebApplicationContext需要ServletContext实例，也就是说它必须在拥有Web容器的前提下才能完成启动的工作。
+
+Spring分别提供了用于启动WebApplicationContext的Servlet和Web容器监听器：ContextLoader有两个实现：ContextLoaderListener和ContextLoaderServlet
+
+    org.springframework.web.context.ContextLoaderServlet: 适用于不支持容器监听器的低版本Web容器中
+
+    <context-param> 
+        <param-name>contextConfigLocation</param-name>   
+        <param-value>/WEB-INF/baobaotao-dao.xml, /WEB-INF/baobaotao-service.xml </param-value> 
+    </context-param> 
+
+    <!--①声明自动启动的Servlet --> 
+    <servlet>   
+        <servlet-name>springContextLoaderServlet</servlet-name> 
+        <servlet-class>org.springframework.web.context.ContextLoaderServlet </servlet-class> 
+        <!--②启动顺序--> 
+        <load-on-startup>1</load-on-startup> 
+    </servlet> 
+
+    org.springframework.web.context.ContextLoaderListener: 现代容器适用
+
+    class ContextLoaderListener extends ContextLoader implements ServletContextListener extends EventListener
+
+    这个监听器所在的jar包为：spring-web.jar
+
+    注意: ContextLoadListener会在创建时自动查找WEB-INF/下的applicationContext.xml文件，因此，如果只有一个配置文件，并且文件名为applicationContext.xml,则只需要在web.xml中加入对Listener的配置就可以。否则, 就用逗号加载多个配置文件, 配置文件的key是contextConfigLocation
+
+    <!--①指定配置文件--> 
+    <context-param>                                                        
+        <param-name>contextConfigLocation</param-name>   
+        <param-value> 
+            /WEB-INF/baobaotao-dao.xml, /WEB-INF/baobaotao-service.xml  
+        </param-value> 
+    </context-param> 
+    <!--②声明Web容器监听器--> 
+    <listener>   
+        <listener-class>org.springframework.web.context.ContextLoaderListener </listener-class> 
+    </listener> 
+
+a) ServletContext:  
+    tomcat启动时, 创建ServletContext，作为全局上下文以及spring容器的宿主环境。
+    当执行Servlet的init()方法时，会触发ServletContextListener的 public void contextInitialized(ServletContextEvent sce);
+    
+b) WebApplicationContext:  
+    在web.xml中配置了ContextLoaderListener的监听器，该listener实现了ServletContextListener接口, 也就实现了contextInitialized方法, 来监听Servlet初始化事件。
+    
+    @Override
+	public void contextInitialized(ServletContextEvent event) {
+		initWebApplicationContext(event.getServletContext());
+	}
+    
+    在该方法中, 初始化了根上下文（即IOC容器），也就是WebApplicationContext。该类是一个接口类，其默认实现为XmlWebApplicationContext。
+    
+    在initWebApplicationContext这个方法中进行了创建根上下文，并将该上下文以key-value的方式存储到ServletContext中
+    
+    以WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE为key，this.context则为value. this.context就是刚才创建的根上下文。后面就可以通过这个ServletContext通过这个key获取该上下文了。
+    
+    而在web.xml中还有一对重要的标签
+    <context-param>该标签内的<param-name>的值. 该常量的值就是contextConfigLocation。通过该方法去寻找定义spring的配置文件。来初始化IOC容器的相关信息。
+
+c) DispatcherServlet的上下文:  
+    在WebApplicationContext初始化完后。开始初始化web.xml中的servlet。这个servlet可以有多个。默认我们都使用DispatcherServlet。<servlet>标签中可以有<init-param>标签用来配置一些DispatcherServlet的初始化参数。
+
+    该servlet初始化流程是有tomcat的Servlet的init()方法触发。
+    
+    DispatcherServleet-继承->FrameworkServlet-继承->HttpServletBean-继承-GenericServlet- 实现 ->Servlet。这样的一条关系链。其核心方法在FrameworkServlet中的initServletBean()中的initWebApplicationContext()方法中。
+    
+    首先去获取之前存在Servlet中的WebApplicationContext。通过上面说的WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE作为key
+    
+    取到之后，设置为当前DispatcherServlet的父上下文。并且也把该上下文存在ServletContext中。
+    
+    通过init方法创建的dispatcherServlet上下文可以访问通过ServletContextListener中创建的WebApplicationContext上下文中的bean，反之则不行。因为WebApplicationContext是dispatcherServlet上下文的父容器。
+
+    web容器可以说就是Servlet容器--ServletContext，启动tomcat必然有这个。
+    dispatcherServlet只是一个Servlet，必然装在容器里。当然容器可以装其它任何Servlet，不一定必须有dispatcherServlet。
+    WebApplicationContext是IOC容器，里面是装spring的bean的。可以说与上面的容器及具体的Servlet没有直接联系。
+
+##### 事件机制
+
+public interface ServletContextListener extends EventListener {}
+    public void contextInitialized(ServletContextEvent sce);
+    public void contextDestroyed(ServletContextEvent sce);
+
+public class ServletContextEvent extends java.util.EventObject {
+    public ServletContextEvent(ServletContext source) {
+        super(source);
+    }
+    public ServletContext getServletContext() {
+        return (ServletContext) super.getSource();
+    }
+}
+
+* public ServletContextEvent(ServletContext source);这个方法是从一个给定的ServletContext构建一个ServletContextEvent。也就是Servlet一初始化, 就可以构建一个ServletContextEvent事件
+* public ServletContext getServletContext();则是返回已经改变的ServletContext
+* ServletContextListener则监听ServletContextEvent事件

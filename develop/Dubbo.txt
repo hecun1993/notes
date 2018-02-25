@@ -1,63 +1,3 @@
-rpc
-	1）服务消费方（client）调用以本地调用方式调用服务；
-	2）client stub接收到调用后负责将方法、参数等组装成能够进行网络传输的消息体；
-	3）client stub找到服务地址，并将消息发送到服务端；
-	4）server stub收到消息后进行解码；
-	5）server stub根据解码结果调用本地的服务；
-	6）本地服务执行并将结果返回给server stub；
-	7）server stub将返回结果打包成消息并发送至消费方；
-	8）client stub接收到消息，并进行解码；
-	9）服务消费方得到最终结果。
-
-	怎么封装通信细节才能让用户像以本地调用方式调用远程服务呢？对java来说就是使用代理！java代理有两种方式：1） jdk 动态代理；2）字节码生成。尽管字节码生成方式实现的代理更为强大和高效，但代码不易维护，大部分公司实现RPC框架时还是选择动态代理方式。
-
-	我们需要实现RPCProxyClient代理类，代理类的invoke方法中封装了与远端服务通信的细节，消费方首先从RPCProxyClient获得服务提供方的接口，当执行helloWorldService.sayHello(“test”)方法时就会调用invoke方法。
-
-	确定消息数据结构
-		1）接口名称
-		2）方法名
-		3）参数类型&参数值
-		4）超时时间
-		5）requestID，标识唯一请求id
-		同理服务端返回的消息结构一般包括以下内容。
-			1）返回值
-			2）状态code
-			3）requestID
-	序列化
-		通用性, 性能, 可扩展性protobuf
-	通信
-		消息数据结构被序列化为二进制串后，下一步就要进行网络通信了。目前有两种IO通信模型：1）BIO；2）NIO。一般RPC框架需要支持这两种IO模型，
-
-	1）client线程每次通过socket调用一次远程接口前，生成一个唯一的ID，即requestID（requestID必需保证在一个Socket连接里面是唯一的），一般常常使用AtomicLong从0开始累计数字生成唯一ID；
-
-	2）将处理结果的回调对象callback，存放到全局ConcurrentHashMap里面put(requestID, callback)；
-
-	3）当线程调用channel.writeAndFlush()发送消息后，紧接着执行callback的get()方法试图获取远程返回的结果。在get()内部，则使用synchronized获取回调对象callback的锁，再先检测是否已经获取到结果，如果没有，然后调用callback的wait()方法，释放callback上的锁，让当前线程处于等待状态。
-
-	4）服务端接收到请求并处理后，将response结果（此结果中包含了前面的requestID）发送给客户端，客户端socket连接上专门监听消息的线程收到消息，分析结果，取到requestID，再从前面的ConcurrentHashMap里面get(requestID)，从而找到callback对象，再用synchronized获取callback上的锁，将方法调用结果设置到callback对象里，再调用callback.notifyAll()唤醒前面处于等待状态的线程。
-
-	zookeeper可以充当一个服务注册表（Service Registry），让多个服务提供者形成一个集群，让服务消费者通过服务注册表获取具体的服务访问地址（ip+端口）去访问具体的服务提供者。
-
-	zookeeper提供了“心跳检测”功能，它会定时向各个服务提供者发送一个请求（实际上建立的是一个 socket 长连接），如果长期没有响应，服务中心就认为该服务提供者已经“挂了”，并将其剔除，
-
-	更为重要的是zookeeper 与生俱来的容错容灾能力（比如leader选举），可以确保服务注册表的高可用性。
-
-restful: 是rpc的一种
-    查询 /user/query?name=tom         GET         /user?name=tome     GET
-    详情 /user/getInfo?id=1           GET         /user/1             GET
-    创建 /user/create?name=tome       POST        /user               POST
-    修改 /user/update?id=1&name=jerry POST        /user/1             PUT
-    删除 /user/delete?id=1            GET         /user/1             DELETE
-
-    1.用url描述资源
-    2.用HTTP方法描述行为，使用HTTP状态码表示不同的结果
-    3.用json交互数据
-    4.只是一种风格，不是强制的标准
-
-	不是所有的方法都适合用restful接口
-
-因为要把所有的controller方法的参数都写在url中, 这时候如果参数不全部传, 会造成表意不明, 无法映射到某一个确定的方法
-
 采用SOA架构，使用Zookeeper作为注册中心，子系统之间通过Dubbo通信、调用服务；
 
 	服务层和表现层是不同的工程，所以需要系统之间的通信。
@@ -103,3 +43,59 @@ Dubbo架构的主要质量属性
 		④注册中心全部宕机后，服务提供者和服务消费者仍能通过本地缓存通信。
 		⑥服务提供者无状态，任意一台宕机后不影响使用。
 		⑦服务提供者全部宕机后，服务消费者应用将无法使用，并无限次重连等待服务提供者恢复。
+
+dubbo:
+
+接口 | 接口实现类 | controller
+
+1. 声明服务接口, 所有的服务接口都单独打包放在一个项目中
+2. 服务提供者开发, 实现服务接口
+3. 服务提供者配置, 发布服务
+4. 服务消费者配置, 引用服务
+5. 服务调用
+
+1. 在服务消费者和提供者两个module分别引用jar
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>dubbo</artifactId>
+    <version>2.4.9</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>com.101tec</groupId>
+    <artifactId>zkclient</artifactId>
+    <version>0.8</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+
+2.
+consumer.xml
+    消费方应用信息, 用于计算依赖关系
+    <dubbo:application name="bookshop-admin"/>
+    使用zookeeper注册中心暴露服务地址
+	<dubbo:registry protocol="zookeeper" address="127.0.0.1:2181"></dubbo:registry>
+	生成远程服务代理, 可以和本地bean一样使用service
+	<dubbo:reference id="bookService" interface="com.lesson.service.BookService" version="1.0" group="hds"></dubbo:reference>
+
+provider.xml
+    提供方应用信息, 用于计算依赖关系
+    <dubbo:application name="bookshop-provider"/>
+    使用zookeeper注册中心暴露服务地址
+    <dubbo:registry protocol="zookeeper" address="127.0.0.1:2181"></dubbo:registry>
+    声明需要暴露的服务接口
+    <dubbo:service interface="com.lesson.service.BookService" ref="bookServiceImpl" version="1.0" group="hds"></dubbo:service>
+
+3.
+./zkServer.sh start
+
+4. 实体类需要实现序列化接口

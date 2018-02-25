@@ -1,0 +1,121 @@
+事务 @Transactional
+    
+    1. 在一个类或者一个方法上使用 @Transactional 注解
+    2. 在一个配置类上加入一个 @EnableTransactionManagement 注解代表启动事务。
+    3. 配置类需要实现 TransactionManagementConfigurer 事务管理器配置接口。并实现 annotationDrivenTransactionManager 方法返回一个包含了配置好数据源的 DataSourceTransactionManager 事务对象。
+    4. 这样就完成了事务配置，就可以在Spring使用事务的回滚或者提交功能了。
+    5. @Transactional注解加载A类的a方法上, 则A类的b方法调用a方法, 该注解无效, 必须在非A类中调用a方法才有效.
+    6. @Transactional(rollback = Exception.class) 只发生Exception异常, 才会回滚
+    7. save方法有事务, getInfo方法也有事务, getInfo方法中调用了save方法. 由于save方法配置的事务的传播级别是REQUIED, 所以这两个事务会合并在一个事务中(getInfo)
+        @Transactional(propagation = Propagation.REQUIRES_NEW)
+        则无论如何都会新开一个事务
+        应用场景: 在创建订单之前, 要加一个日志信息, 无论成功与否, 这个日志都需要提交. 这时就要重新设置其传播级别为REQUIRES_NEW
+
+
+    @Transactional(isolation = Isolation.DEFAULT) 隔离级别
+    @Transactional(propagation = Propagation.REQUIRED) 传播行为
+
+    在Spring Boot中，当我们使用了spring-boot-starter-jdbc或spring-boot-starter-data-jpa依赖的时候，框架会自动默认分别注入DataSourceTransactionManager或JpaTransactionManager。所以我们不需要任何额外配置就可以用@Transactional注解进行事务的使用。
+    
+    首先使用注解 @EnableTransactionManagement 开启事务支持后，然后在访问数据库的Service方法上添加注解 @Transactional 便可。
+
+    关于事务管理器，不管是JPA还是JDBC等都实现自接口 PlatformTransactionManager 如果你添加的是 spring-boot-starter-jdbc 依赖，框架会默认注入 DataSourceTransactionManager 实例。如果你添加的是 spring-boot-starter-data-jpa 依赖，框架会默认注入 JpaTransactionManager 实例。
+
+    PlatformTransactionManager： 事务管理器
+    TransactionDefinition： 事务的一些基础信息，如超时时间、隔离级别、传播属性等
+    TransactionStatus： 事务的一些状态信息，如是否是一个新的事务、是否已被标记为回滚
+
+    事务的隔离级别是数据库本身的事务功能，然而事务的传播属性则是Spring自己为我们提供的功能，数据库事务没有事务的传播属性这一说法。
+
+实例:
+    @EnableTransactionManagement 
+    // 开启注解事务管理，等同于xml配置文件中的 <tx:annotation-driven />
+    @SpringBootApplication
+    public class ProfiledemoApplication implements TransactionManagementConfigurer {
+
+        @Resource(name = "txManager2")
+        private PlatformTransactionManager txManager2;
+
+        // 创建事务管理器1
+        @Bean(name = "txManager1")
+        public PlatformTransactionManager txManager(DataSource dataSource) {
+            return new DataSourceTransactionManager(dataSource);
+        }
+
+        // 创建事务管理器2
+        @Bean(name = "txManager2")
+        public PlatformTransactionManager txManager2(EntityManagerFactory factory) {
+            return new JpaTransactionManager(factory);
+        }
+
+        // 实现接口 TransactionManagementConfigurer 方法 annotationDrivenTransactionManager，其返回值代表在拥有多个事务管理器的情况下默认使用的事务管理器
+        @Override
+        public PlatformTransactionManager annotationDrivenTransactionManager() {
+            return txManager2;
+        }
+
+        public static void main(String[] args) {
+            SpringApplication.run(ProfiledemoApplication.class, args);
+        }
+    }
+
+    @Component
+    public class DevSendMessage implements SendMessage {
+
+        // 使用value具体指定使用哪个事务管理器
+        @Transactional(value = "txManager1")
+        @Override
+        public void send() {
+            System.out.println(">>>>>>>>Dev Send()<<<<<<<<");
+            send2();
+        }
+
+        // 在存在多个事务管理器的情况下，如果使用value具体指定
+        // 则默认使用方法 annotationDrivenTransactionManager() 返回的事务管理器
+        @Transactional
+        public void send2() {
+            System.out.println(">>>>>>>>Dev Send2()<<<<<<<<");
+        }
+    }
+
+多数据源:
+    @Primary
+    @Bean(name ="prodDataSource")
+    @ConfigurationProperties(prefix="spring.datasource")
+    public DataSource dataSource() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "prodJdbc")
+    public JdbcTemplate prodJdbcTemplate(@Qualifier("prodDataSource") DataSource prodDataSource){ 
+        return new JdbcTemplate(prodJdbcTemplate);
+    }
+
+    @Bean(name = "devDataSource")
+    @ConfigurationProperties(prefix = "spring.datasource.dev")
+    public DataSource devDataSource() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "devJdbc")
+    public JdbcTemplate devJdbcTemplate(@Qualifier("devDataSource") DataSource devDataSource) {
+        return new JdbcTemplate(devDataSource);
+    }
+
+注入时:
+    @Autowired
+    @Qualifier("prodJdbc")
+    private JdbcTemplate prodJdbcTemplate;
+
+查看某种数据库是否支持事务:
+connection = dataSource.getConnection();
+DatabaseMetaData databaseMetaData = connection.getMetaData();
+supported = databaseMetaData.supportsTransactions();
+
+分布式事务:
+    createOrder()
+    updateStock()
+    updateUserBalance()
+    当最后一个服务出现异常时, 会向消息队列中发送消息, 而上面两个服务则不断的监听消息队列中的消息
+    如果扣了库存, 则需要恢复 -- 消息一致性
+    开发简单, 但有一小段时间, 库存信息是不正确的.

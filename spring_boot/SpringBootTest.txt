@@ -1,0 +1,25 @@
+# 关闭管理接口的安全校验
+management.security.enabled = false
+    ManagementServerProperties
+
+    访问/env
+        可以看到application.properties中配置的信息, 还有端口号等.
+
+# 指定端口为0, 是操作系统的可用的随机端口. 每次启动的端口都不一样
+server.port = 0
+
+idea提供了测试过程中的coverage信息, 可以重点关注行覆盖度. 因为行覆盖度比方法覆盖度更精准. 比如在一个方法中有条件判断, 5个分支.
+即使这个方法被覆盖了, 也只能测出20%的覆盖面. 但是行覆盖度就更全面.
+
+Environment接口有两个实现
+    StandardEnvironment
+    StandardServletEnvironment
+        
+    Environment是一个接口, 在实例化的时候, 不确定是用web还是非web的实现
+    所以这里选择用MockEnvironment来实例化Environment接口
+    可以获取一些系统属性
+        assertNotNull(System.getProperty("os.arch"));
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("user.country", "EN");
+        assertEquals("EN", environment.getProperty("user.country"));
+    

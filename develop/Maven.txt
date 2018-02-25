@@ -1,6 +1,6 @@
 注意:
     当我们依赖一个a.jar时，如果a.jar依赖b.jar，那么只需要早pom中声明对a.jar的依赖即可，b.jar会被Maven自动加载进来。
-    
+
     编译 测试 运行 需要不同的classpath
 
     compile：编译依赖范围。如果没有指定，默认使用该依赖范围。
@@ -14,25 +14,29 @@
     system：系统依赖范围。同provided。
         使用该依赖时必须通过systemPath元素显式地指定依赖文件路径。主要用于依赖本地的、且Maven仓库之外的类库文件。
 
+pom.xml里面依赖dependency的元素标签optional的作用
+    假如你的Project A的某个依赖D添加了<optional>true</optional>，当别人通过pom依赖Project A的时候，D不会被传递依赖进来
+    当你依赖某各工程很庞大或很可能与其他工程的jar包冲突的时候建议加上该选项，可以节省开销，同时减少依赖冲突
+
 maven环境隔离
 
     1. 在pom.xml文件中配置
     <build>
         <resources>
-                <resource>
-                        <directory>src/main/resources.${deploy.type}</directory>
-                        <excludes>
-                                <exclude>*.jsp</exclude>
-                        </excludes>
-                </resource>
-                <resource>
-                        <directory>src/main/resources</directory>
-                </resource>
+            <resource>
+                <directory>src/main/resources.${deploy.type}</directory>
+                <excludes>
+                        <exclude>*.jsp</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
         </resources>
-
+    
         <plugins></plugins>
     </build>
-
+    
     <profiles>
         <profile>
             <id>dev</id>
@@ -56,9 +60,35 @@ maven环境隔离
             </properties>
         </profile>
     </profiles>
-
+    
     2. 在resources下建立resources.beta/dev/prod, 把各自环境中的配置信息文件放入各自文件夹之中. 比如datasource.properties, logback.xml, mmall.properties, zfbinfo.properties
-
+    
     3. 启动
         mvn clean package -Dmaven.skip.test=true -Pdev
         打包一个dev环境的war包
+
+#### 在maven打包时排除某些资源
+
+```xml
+<build>
+    <resources>
+        <resource>
+            <directory>${basedir}/src/main/resources</directory>
+            <excludes>
+                <exclude>*.properties</exclude>
+            </excludes>
+        </resource>
+    </resources>
+    <plugins></plugins>
+</build>
+```
+
+#### 引入大数据cloudera依赖
+```xml
+<repositories>
+    <repository>
+        <id>cloudera</id>
+        <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+    </repository>
+</repositories>
+```

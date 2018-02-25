@@ -1,0 +1,20 @@
+Filter:
+    Servlet API中提供了一个Filter接口，开发web应用时，如果编写的Java类实现了这个接口，则把这个java类称之为过滤器Filter。通过Filter技术，开发人员可以实现用户在访问某个目标资源之前，对访问的请求和响应进行拦截
+
+    编写java类实现Filter接口，并实现其doFilter方法。
+    在 web.xml 文件中使用<filter>和<filter-mapping>元素对编写的filter类进行注册，并设置它所能拦截的资源。
+
+    一定要实现javax.servlet包的Filter接口的三个方法init()、doFilter()、destroy()，空实现也行 
+    (1)、启动服务器时加载过滤器的实例，并调用init()方法来初始化实例； 
+    (2)、每一次请求时都只调用方法doFilter()进行处理； 
+    (3)、停止服务器时调用destroy()方法，销毁实例。 
+
+    总结：
+    1).filter的init方法在容器初始化时加载。第一次加载容器执行顺序随机，以后再次加载顺序以第一次加载顺序为准。
+    2).filter的doFilter方法在请求url时执行，如果有多个filter匹配，则按照<filter-mapping>顺序执行(前提是doFilter方法里面最后要调用FilterChain的doFilter方法，这个方法作用是继续执行下个filter,如果没有加，则不执行下面的filter)
+    3).serlvet的init方法
+        a.如果web.xml中配置了<load-on-startup>属性，则在Tomcat初始化时按其值从小到大的顺序加载所有servlet的init方法。
+        b.如果没有配置<load-on-startup>属性，容器初始化时不加载。在请求匹配的url时进行加载，并且只加载最后一个servlet的init方法。其他的servlet不加载。
+    4).servlet的doGet、doPost方法：在请求匹配的url路径时加载，而且只加载最后一个servlet的方法，其他方法不加载。 
+    5).filter和servlet同时存在，且容器初始化都要加载，则先加载filter再加载servlet的init方法。
+    6).如果请求的url既匹配filter又匹配servlet，并且servlet的init方法没有在容器初始化加载，则先加载匹配的servlet的最后一个servlet的init方法，再按顺序执行filter方法，最后再执行匹配的最后一个servlet方法。

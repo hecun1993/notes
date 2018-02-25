@@ -1,4 +1,12 @@
+初始化安装工具:
+yum -y install gcc zlib zlib-devel openssl openssl-devel gcc-c++ autoconf pcre pcre-devel make automake wget httpd-tools vim
+
+ps aux | grep java 在springboot启动之后, 查看进程id
+
 ps -ef | grep redis 查看进程
+ps aux | grep redis 查看进程
+	如果想查看进程的CPU占用率和内存占用率，可以使用aux 
+	如果想查看进程的父进程ID和完整的COMMAND命令，可以使用ef
 netstat -nap | grep 5672 查看端口
 
 CPU使用率：
@@ -17,7 +25,8 @@ tar -zxvf zookeeper-3.4.6.tar.gz [解压缩后的文件名]
 mv zoo_sample.cfg zoo.cfg 改名
 
 service iptables stop 关闭防火墙
-chkconfig iptables off 开机不启动防火墙
+service iptables status 查看目前防火墙状态
+chkconfig iptables off 开机不启动防火墙, 永久关闭防火墙
 
 如果只想看文件的前5行，可以使用head命令，如：
 head -5 /etc/passwd
@@ -91,3 +100,15 @@ make -j 4 用4核来编译, 加快编译速度
 
 查看cpu核数
 cat /proc/cpuinfo | grep processor
+
+修改主机名:
+	1. 临时修改
+		查看: hostname
+		修改: sudo hostname orcl1
+	2. 永久修改
+		1. 修改/etc/sysconfig/network中的hostname
+		2. 修改/etc/hosts文件
+		3. shutdown -r now    #最后，重启服务器即可。
+
+lsof -i :22
+	lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。

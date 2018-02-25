@@ -1,0 +1,9 @@
+启动类上的注解@SpringBootApplication包含的子注解信息：
+    1. @SpringBootConfiguration实际上就是@Configuration，说明这是一个JavaConfig
+    2. @ComponentScan，启用注解自动扫描
+    3. @EnableAutoConfiguration: 自动配置. 其作用是根据类路径中jar包是否存在来决定是否开启某一个功能的自动配置，比如，我们项目中添加了spring-boot-starter-web依赖，因其关联Tomcat和Srping MVC，所以类路径下就会存在Tomcat和Spring MVC的jar包，SpringBoot项目扫描到这些jar包后会自动开启两者的配置，当然，这个配置是默认配置，我们可以根据需要进行修改
+    4. exclude和excludeName用于关闭指定的自动配置，比如关闭数据源相关的自动配置
+        @SpringBootApplication(exclude={DataSourceAutoConfiguration.class})
+    5. spring-boot-autoconfigure-1.4.2.RELEASE.jar中就有一个spring.factories，可以看到org.springframework.boot.autoconfigure.EnableAutoConfiguration参数中列出了自动配置类列表
+
+

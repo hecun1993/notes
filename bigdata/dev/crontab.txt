@@ -1,0 +1,14 @@
+设置定时任务产生日志:
+
+crontab -e 
+	*/1 * * * * * ./Users/hecun/Desktop/log_generator.sh
+
+
+yum install crontabs
+/sbin/service crond start
+
+crontab -l
+	显示某个用户的crontab文件内容，如果不指定用户，则表示显示当前用户的crontab文件内容。
+
+crontab -r
+	从/var/spool/cron目录中删除某个用户的crontab文件，如果不指定用户，则默认删除当前用户的crontab文件。

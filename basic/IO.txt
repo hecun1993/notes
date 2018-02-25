@@ -1,3 +1,7 @@
+对设备的读操作是将数据从Linux的内核空间复制到用户空间；
+写操作是将数据从Linux的用户空间复制到内核空间。
+
+
 典型NIO有三类线程，分别是mainReactor线程、subReactor线程、work线程。
     mainReactor线程负责监听server socket，accept新连接，并将建立的socket分派给subReactor；
     subReactor可以是一个线程，也可以是线程池（一般可以设置为CPU核数），负责多路分离已连接的socket，读写网络数据，这里的读写网络数据可类比顾客填表这一耗时动作，
@@ -27,8 +31,26 @@ new BufferedReader(new FileReader("test.txt"))
 	while((i = fis.read()) != -1){
 		System.out.println(i);
 	}
-
+	
 	String line;
 	while((line = br.readLine()) != null){     
 		System.out.println(line);     
 	}
+
+IO通信对比：
+	客户端个数：
+		BIO   1:1
+		伪异步IO  M:N
+		NIO  M:1
+		MIO  M:0
+
+  	类型：
+		BIO 阻塞同步
+		伪异步IO 阻塞同步
+		NIO 非阻塞同步
+		AIO 非阻塞异步
+
+ 	使用难度：BIO<伪异步IO<AIO<NIO
+	调试难度：BIO<伪异步IO<NIO 约= AIO
+	可靠性：BIO<伪异步IO<NIO 约= AIO
+	吞吐量：BIO<伪异步IO<NIO 约= AIO

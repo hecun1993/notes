@@ -1,0 +1,10 @@
+日志收集
+	Flume
+	Logstash: ELK(ElasticSearch Kibana)
+
+三大组件
+	Source: 收集
+	Channel: 聚集
+	Sink: 输出
+
+flume: 分布式日志收集框架

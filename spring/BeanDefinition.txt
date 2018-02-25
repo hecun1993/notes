@@ -1,0 +1,16 @@
+Bean对象在Spring实现中是以BeanDefinition来描述的
+
+Spring IoC容器对Bean定义资源的载入是从refresh()函数开始的，refresh()是一个模板方法，refresh()方法的作用是：
+    在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。refresh的作用类似于对IoC容器的重启，在新建立好的容器中对容器进行初始化，对Bean定义资源进行载入
+
+Spring源码之IoC容器的加载
+
+- IoC容器的初始化包括三个过程，BeanDefinition的Resource的定位、载入和注册。
+
+- 1. Resource的定位。指BeanDefinition的资源定位，通过ResourceLoader接口中的getResource方法完成。（对各种形式的BeanDefinition提供统一的接口）
+
+- 2. BeanDefinition的载入。这个载入过程是把用户定义好的Bean表示成IOC容器内部的数据结构，而这个容器内部的数据结构就是BeanDefinition。BeanDefinition实际上就是POJO对象在IOC容器中的抽象，通过这个BeanDefinition定义的数据结构，使IOC容器能够方便地对POJO对象也就是Bean进行管理。
+
+- 3. 向IOC容器注册BeanDefinition。通过调用BeanDefinitionRegistry接口的实现来完成。通过分析，在IOC容器内部将BeanDefinition注入到一个HashMap中去，IOC容器就是通过这个HashMap来持有这些BeanDefinition数据的
+
+- 注意，在IOC设计中，Bean定义的载入和依赖注入是两个独立的过程。依赖注入一般发生在应用第一次通过getBean向容器索取Bean的时候。但可以通过设置<bean lazyinit="true" />来配置。

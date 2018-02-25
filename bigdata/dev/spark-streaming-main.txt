@@ -1,0 +1,20 @@
+//看传入的参数是不是4个
+if (args.length != 4) {
+    println("Usage: ImoocStatStreamingApp <zkQuorum> <group> <topics> <numThreads>")
+    System.exit(1)
+}
+
+//接收启动时传入的参数
+val Array(zkQuorum, groupId, topics, numThreads) = args
+
+val sparkConf = new SparkConf().setAppName("ImoocStatStreamingApp").setMaster("local[2]")
+val ssc = new StreamingContext(sparkConf, Seconds(60))
+
+//构造map格式的参数
+val topicMap = topics.split(",").map((_, numThreads.toInt)).toMap
+
+//把kafka中的数据输出成流
+val messages = KafkaUtils.createStream(ssc, zkQuorum, groupId, topicMap)
+
+// 测试步骤一：测试数据接收
+//messages.map(_._2).count().print
