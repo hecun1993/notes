@@ -1,0 +1,248 @@
+arraylist拷贝:
+	调用了Arrays.copyOf(elementData, newCapacity)方法，这个方法中：对于我们这里而言，先创建了一个新的容量为newCapacity的对象数组，然后使用System.arraycopy()方法将旧的对象数组复制到新的对象数组中去了。
+
+添加元素时可能要扩容（所以最好预判一下），删除元素时不会减少容量（若希望减少容量，trimToSize()），删除元素时，将删除掉的位置元素置为null，下次gc就会回收这些元素所占的内存空间。
+add(int index, E element)：添加元素到数组中指定位置的时候，需要将该位置及其后边所有的元素都整块向后复制一位
+remove(Object o)需要遍历数组
+remove(int index)不需要遍历数组，只需判断index是否符合条件即可，效率比remove(Object o)高
+contains(E)需要遍历数组
+
+LRU算法:
+	是Least Recently Used 的缩写，翻译过来就是“最近最少使用”，LRU缓存就是使用这种原理实现，简单的说就是缓存一定量的数据，当超过设定的阈值时就把一些过期的数据删除掉，比如我们缓存10000条数据，当数据小于10000时可以随意添加，当超过10000时就需要把新的数据添加进来，同时要把过期数据删除，以确保我们最大缓存10000条，那怎么确定删除哪条过期数据呢，采用LRU算法实现的话就是将最老的数据删掉
+
+Java里面实现LRU缓存通常有两种选择，一种是使用LinkedHashMap，一种是自己设计数据结构，使用链表+HashMap
+
+LinkedHashMap自身已经实现了顺序存储，默认情况下是按照元素的添加顺序存储，也可以启用按照访问顺序存储，即最近读取的数据放在最前面，最早读取的数据放在最后面，然后它还有一个判断是否删除最老数据的方法，默认是返回false，即不删除数据，我们使用LinkedHashMap实现LRU缓存的方法就是对LinkedHashMap实现简单的扩展，扩展方式有两种，一种是inheritance，一种是delegation，具体使用什么方式看个人喜好
+
+//LinkedHashMap的构造函数，当参数accessOrder为true时，即会按照访问顺序排序，最近访问的放在最前，最早访问的放在后面
+public LinkedHashMap(int initialCapacity, float loadFactor, boolean accessOrder) {
+    super(initialCapacity, loadFactor);
+    this.accessOrder = accessOrder;
+}
+
+//LinkedHashMap自带的判断是否删除最老的元素方法，默认返回false，即不删除老数据
+//我们要做的就是重写这个方法，当满足一定条件时删除老数据
+protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
+    return false;
+}
+
+使用继承的方式:
+	采用inheritance方式实现比较简单，而且实现了Map接口，在多线程环境使用时可以使用 Collections.synchronizedMap()方法实现线程安全操作
+	@Override
+    protected boolean removeEldestEntry(Map.Entry eldest) {
+        return size() > MAX_CACHE_SIZE;
+    }
+
+
+0. string,stringbulider,stringbuffer的区别
+	public final class String extends Object，里边有final关键字，所以不能被继承。
+	可变性：
+		String类中使用字符数组保存字符串，如下就是，因为有“final”修饰符，所以可以知道string对象是不可变的。也是不可以被继承的。
+			private final char value[];
+		StringBuilder与StringBuffer都继承自AbstractStringBuilder类，在AbstractStringBuilder中也是使用字符数组保存字符串，如下就是，可知这两种对象都是可变的。
+			char[] value;
+	是否多线程安全：
+		String中的对象是不可变的，也就可以理解为常量，显然线程安全。
+		StringBuffer对方法加了同步锁或者对调用的方法加了同步锁，所以是线程安全的。
+		StringBuilder并没有对方法进行加同步锁，所以是非线程安全的。
+	StringBuilder与StringBuffer共同点：
+		StringBuilder与StringBuffer有公共父类AbstractStringBuilder(抽象类)。
+		如果程序不是多线程的，那么使用StringBuilder效率高于StringBuffer。
+
+1. arraylist和linkedlist的区别
+	内部采用双向链表Node内部类来存储数据，由于采用了双向链表
+	Linked的优势在于头部插入的效率，只需要修改头部元素的指针就可以做到，而数组还需要移动后续的数据，所有效率远远低于LinkedList
+	* ArrayList基于动态数组，LinkedList基于链表，都用于存储一系列的对象的引用
+	* ArrayList使用一个内置的数组存储元素，数组起始容量是10。当数组需要增长时，ArrayList的扩容规则是变成原来最大容量的1.5倍+1。可以通过构造方法指定容量，也可以用trimToSize方法去掉分配完毕之后剩余的空间。
+		* Vector -- 默认扩充为原内部数组的两倍
+	* ArrayList擅长随机访问，LinkedList擅长新增和删除元素的操作。
+	* ArrayList，LinkedList都是线程不安全的。
+		* Vector -- 是线程安全的，Stack是Vector的子类，也是线程安全的。
+	* ArrayList可以添加重复元素,因为在源码的add方法中,无论如何添加,返回结果都是true
+
+2. HashMap
+	只要将hash表的长度设为2的N次方，那么，所有的哈希桶均有被使用的可能。
+	HashMap的实例有两个参数影响其性能：初始容量和加载因子。 可以设置初始值. 当哈希表中条目的数目超过容量乘加载因子 的时候，则要对该哈希表进行rehash操作，从而哈希表将具有大约两倍的桶数
+
+	public V put(K key, V value) {  
+		// 处理key为null，HashMap允许key和value为null  
+		if (key == null)  
+			return putForNullKey(value);  
+		// 得到key的哈希码  
+		int hash = hash(key);  
+		// 通过哈希码计算出bucketIndex  
+		int i = indexFor(hash, table.length);  
+		// 取出bucketIndex位置上的元素，并循环单链表，判断key是否已存在  
+		for (Entry<K,V> e = table[i]; e != null; e = e.next) {  
+			Object k;  
+			// 哈希码相同并且对象相同时  
+			if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {  
+				// 新值替换旧值，并返回旧值  
+				V oldValue = e.value;  
+				e.value = value;  
+				e.recordAccess(this);  
+				return oldValue;  
+			}  
+		}  
+	
+		// key不存在时，加入新元素  
+		modCount++;  
+		addEntry(hash, key, value, i); 
+		//Hashmap addEntry 方法为什么放在链的最前
+		系统总是将新添加的 Entry 对象放入 table 数组的 bucketIndex 索引处——如果 bucketIndex 索引处已经有了一个 Entry 对象，那新添加的 Entry 对象指向原有的 Entry 对象（产生一个 Entry 链），如果 bucketIndex 索引处没有 Entry 对象，也就是上面程序代码的 e 变量是 null，也就是新放入的 Entry 对象指向 null，也就是没有产生 Entry 链。 
+		return null;  
+	}  
+
+	解决冲突:
+		链表法就是将相同hash值的对象组织成一个链表放在hash值对应的槽位；
+		开放地址法是通过一个探测算法，当某个槽位已经被占据的情况下继续查找下一个可以使用的槽位。
+
+	* 其结构是数组和链表的结合，在每个数组的位置上，可能会有一条链表。
+	* 可以接受null键和null值。
+		因此，不能由get()方法来判断HashMap中是否存在某个键。
+		这样，如果返回null，就不知道到底有没有这个键。
+		应该用containsKey()方法来判断。 
+	* 线程不安全!
+	* put(key, value)存储对象的时候，首先对键调用其hashcode方法，返回的hashCode值，用于找到其在数组中的位置，也叫bucket，来存储Entry对象(包括key和value)。
+	* 如果存入的两个对象的hashcode相同，则它们的bucket位置相同，会发生“碰撞”。这时，这个Entry对象会存储在该位置产生的链表中。当获取该对象的时候，首先调用key的hashcode方法找到bucket位置，然后调用keys.equals方法，在LinkedList中找到该Entry对象的位置。
+	
+	* 哈希表中的装载因子是指已经存储的位置数与可存储位置数的比值，表示哈希表的拥挤情况。该值越大，越容易发生碰撞。其默认的负载因子大小为0.75.当达到75%后，会将原数组大小扩容至两倍，然后把对象放入新的bucket数组中。该过程在多线程环境下，可能会有条件竞争。
+
+	* Collections.synchronizedXXX(map)，让hashmap具有同步性能
+
+3. HashMap和HashSet的区别：
+	* HashSet是Set的一个实现类,hashMap是Map的一个实现类
+	* HashSet底层采用的是HashMap进行实现的，但是没有key-value，只有HashMap的key视图，换句话说，HashSet以对象作为元素, 而HashMap以(key-value)的一组对象作为元素。
+	* HashSet不容许重复的对象(e1.equals(e2) == false)，无序，也就是元素的插入顺序和输入顺序不一致。
+	* HashSet/TreeSet的构造方法就是new一个HashMap, 只不过值都填充在key的位置上, value是一个相同的new Object()
+
+TreeMap：
+	基于红黑二叉树实现，containsKey(), get(), put(), remove()都有着log(n)的时间复杂度。线程非安全，不允许null，key不可以重复，value允许重复，存入TreeMap的元素应当实现Comparable接口或者实现Comparator接口，会按照排序后的顺序迭代元素，两个相比较的key不得抛出classCastException。主要用于存入元素的时候对元素进行自动排序，迭代输出的时候就按排序顺序输出
+	TreeMap实现了SortedMap接口，也就是说会按照key的大小顺序对Map中的元素进行排序，key大小的评判可以通过其本身的自然顺序（natural ordering），也可以通过构造时传入的比较器（Comparator）。
+
+	红黑树是一种近似平衡的二叉查找树，它能够确保任何一个节点的左右子树的高度差不会超过二者中较低那个的一陪。具体来说，红黑树是满足如下条件的二叉查找树（binary search tree）：
+		每个节点要么是红色，要么是黑色。
+		根节点必须是黑色
+		红色节点不能连续（也即是，红色节点的孩子和父亲都不能是红色）。
+		对于每个节点，从该点至null（树尾端）的任何路径，都含有相同个数的黑色节点。
+
+ConcurrentSkipListMap:
+	高并发，且会排序(TreeMap)
+
+4. HashMap和HashTable的区别：
+	* Hashtable继承自Dictionary类，而HashMap继承自AbstractMap类。但二者都实现了Map接口。
+	* Hashtable中的方法是Synchronize的，而HashMap中的方法是非Synchronize的。
+	
+	* ConcurrentHashMap同步性能更好，因为它仅仅根据同步级别对map的一部分上锁。
+		* 它引入了一个“分段锁”的概念，具体可以理解为把一个大的Map拆分成N个小的HashTable，根据key.hashCode()来决定把key放到哪个HashTable中。
+		* ConcurrentHashMap锁的方式是稍微细粒度的，分段锁。将hash表分为16个桶（默认值），诸如get,put,remove等常用操作只锁当前需要用到的桶。
+		* 只能一个线程进入，现在却能同时16个写线程进入(写线程才需要锁定，而读线程几乎不受限制)，并发性的提升是显而易见的。
+
+	数据结构采用数组 + 链表 + 红黑树的方式实现。当链表中(bucket)的节点个数超过8个时，会转换成红黑树的数据结构存储，这样设计的目的是为了减少同一个链表冲突过大情况下的读取效率。
+
+	Java8中主要做了如下优化:
+		1.将Segment抛弃掉了，直接采用Node（继承自Map.Entry）作为table元素。
+		2.修改时，不再采用ReentrantLock加锁，直接用内置synchronized加锁，java8的内置锁比之前版本优化了很多，相较ReentrantLock，性能不并差。
+		3.size方法优化，增加了CounterCell内部类，用于并行计算每个bucket的元素数量。
+
+	* HashMap把Hashtable的contains方法去掉了，改成containsValue和containsKey。可以避免误解。Hashtable则保留了contains，containsValue和containsKey三个方法，其中contains和containsValue功能相同。
+	* 两者都不能包含重复的key值，但可以出现重复的value值。在Hashtable中，key和value都不允许出现null值。HashMap中，null可以作为键，这样的键只有一个；可以有一个或多个键所对应的value值为null。
+	* Hashtable直接使用的是对象的hashCode,而HashMap则是在对象的hashCode的基础上还进行了一些变化。
+	* 内部数组初始大小不同，HashTable初始大小是11，HashMap初始大小是16.Hashtable采用的是2*old+1,而HashMap是2*old
+	* HashTable使用Enumeration进行遍历；HashMap使用Iterator进行遍历。
+		* Properties继承自Hashtable, 是线程安全的。Properties类表示一个持久的属性集.可保存在流中或从流中加载.属性列表中每个键及其对应值都是一个字符串.
+
+	* 两者都是通过计算key的hashcode来确定bucket的位置，所以，任何作为key的对象都必须实现hashCode和equals方法。
+		* 如果两个不同的对象，其hashCode相同，这就是“碰撞”。会导致哈希表效率降低，所以要设计好的hashCode方法减少冲突
+
+其他：
+	* Map没有继承Collection
+	* Stack的父类是Vector，但是因为Vector的底层是数组，且有get方法，这样可能会获得栈中不是最后一个位置的元素！所以，不要使用Stack，这是一个已经过时的方法。
+
+	队列
+		在尾部添加元素 (add, offer)：
+			add()会在长度不够时抛出异常：IllegalStateException; offer()则不会,只返回false
+		查看头部元素 (element, peek)，返回头部元素，但不改变队列
+			element()会在没元素时抛出异常：NoSuchElementException; peek()返回null;
+		删除头部元素 (remove, poll)，返回头部元素，并且从队列中删除
+			remove()会在没元素时抛出异常：NoSuchElementException; poll()返回null;
+	栈
+		push表示入栈，在头部添加元素，栈的空间可能是有限的，如果栈满了，push会抛出异常IllegalStateException。
+		pop表示出栈，返回头部元素，并且从栈中删除，如果栈为空，会抛出异常NoSuchElementException。
+		peek查看栈头部元素，不修改栈，如果栈为空，返回null。  
+
+BlockingQueue：
+	先进先出（FIFO）：先插入的队列的元素也最先出队列，类似于排队的功能。这种队列也体现了一种公平性。
+	后进先出（LIFO）：后插入队列的元素最先出队列，这种队列优先处理最近发生的事件。
+	
+	阻塞队列
+		队列可以实现数据共享。比如生产者消费者模型中。但如果在某个时间段内，两者的数据处理速率不一致就容易发生问题。
+		当队列中没有数据的情况下，消费者端的所有线程都会被自动阻塞（挂起），直到有数据放入队列。
+		当队列中填满数据的情况下，生产者端的所有线程都会被自动阻塞（挂起），直到有空的位置，线程被自动唤醒。
+
+		作为BlockingQueue的使用者，我们再也不需要关心什么时候需要阻塞线程，什么时候需要唤醒线程，
+
+	方法：(带*为阻塞方法)
+		offer：如果BlockingQueue可以容纳,则返回true,否则返回false.（本方法不阻塞当前执行方法的线程）
+		* put：如果BlockQueue没有空间,则调用此方法的线程被阻断，直到BlockingQueue里面有空间再继续.
+
+		poll：取走BlockingQueue里排在首位的对象,若不能立即取出,则可以等time参数规定的时间,取不到时返回null;
+		* take：取走BlockingQueue里排在首位的对象,若BlockingQueue为空,阻断进入等待状态直到。BlockingQueue有新的数据被加入; 
+		
+		drainTo：一次性从BlockingQueue获取所有可用的数据对象（还可以指定获取数据的个数），通过该方法，可以提升获取数据效率；不需要多次分批加锁或释放锁。
+
+	实现：
+		1.队列中的锁的实现不同
+	    	ArrayBlockingQueue中的锁是没有分离的，在生产者放入数据和消费者获取数据，都是共用同一个锁对象，由此也意味着两者无法真正并行运行
+	    	LinkedBlockingQueue中的锁是分离的，即生产用的是putLock，消费是takeLock,意味着在高并发的情况下生产者和消费者可以并行地操作队列中的数据，以此来提高整个队列的并发性能。
+	 
+		2.在生产或消费时操作不同
+	    	ArrayBlockingQueue基于数组，在生产和消费的时候，是直接将枚举对象插入或移除的，不会产生或销毁任何额外的对象实例；
+	    	LinkedBlockingQueue基于链表，在生产和消费的时候，需要把枚举对象转换为Node<E>进行插入或移除，会生成一个额外的Node对象，这在长时间内需要高效并发地处理大批量数据的系统中，其对于GC的影响还是存在一定的区别。
+	 
+		3.队列大小初始化方式不同
+	    	ArrayBlockingQueue维护了定长数组, 是有界的，必须指定队列的大小；
+	    	LinkedBlockingQueue是无界的，可以不指定队列的大小，但是默认是Integer.MAX_VALUE。当然也可以指定队列大小，从而成为有界的。
+			。
+	
+	PriorityBlockingQueue
+		并不会阻塞数据生产者，而只会在没有可消费的数据时，阻塞数据的消费者。因此使用的时候要特别注意，生产者生产数据的速度绝对不能快于消费者消费数据的速度，否则时间一长，会最终耗尽所有的可用堆内存空间。
+		
+		* 此队列按照在构造时所指定的顺序对元素排序，既可以根据元素的自然顺序来指定排序，也可以根据Comparator来指定，这取决于使用哪种构造方法。
+		* 优先级队列不允许 null 元素。依靠自然排序的优先级队列还不允许插入不可比较的对象。
+		* 用数组实现，数组大小可以动态增加，容量无限
+		* 不同步，不线程安全。否则应使用PriorityBlockingQueue
+		* 不允许使用null元素
+		* 可在构造函数中，指定大小和比较方式。
+			//默认排序，增长顺序
+				Queue<Integer> qi = new PriorityQueue<>();
+				qi.add(5);
+				qi.add(2);
+				qi.add(1);
+				qi.add(10);
+				qi.add(3);
+				while(!qi.isEmpty()){
+					print(qi.poll() + ",")
+				}
+				println();
+					
+			//传入自定义比较器
+				Comparator<Integer> cmp = new Comparator<Integer>() {
+					public int compare(Integer e1, Integer e2){
+						return e2 - e1; //逆序排列
+					}
+				}
+				Queue<Integer> qi = new PriorityQueue<>(5, cmp);
+				qi.add(5);
+				qi.add(2);
+				qi.add(1);
+				qi.add(10);
+				qi.add(3);
+				while(!qi.isEmpty()){
+					print(qi.poll() + ",")
+				}
+
+CyclicBarrier，它可以设置一个所谓的“屏障点”(或称集合点)，好比在一项团队活动中，每个人都是一个线程，但是规定某一项任务开始前，所有人必须先到达集合点，集合完成后，才能继续后面的任务。　
+				
+		
+	

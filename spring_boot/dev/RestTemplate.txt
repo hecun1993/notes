@@ -1,9 +1,0 @@
-RestTemplate可以直接实例化 
-    RestTemplate restTemplate = new RestTemplate();
-
-也可以借助apache的HttpClient实现
-    HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
-    HttpClient httpClient = httpClientBuilder.build();
-    HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
-    RestTemplate restTemplate = new RestTemplate(factory);
-

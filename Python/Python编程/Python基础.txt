@@ -1,0 +1,132 @@
+pip3 install -i https://pypi.douban.com/simple/ virtualenv -- 指定安装来自豆瓣源
+
+1. 安装虚拟环境的方法
+
+virtualenv py3 -- 会在当前路径创建虚拟环境
+cd py3/bin -- 在bin目录中
+source activate -- 进入虚拟环境
+deactivate -- 退出虚拟环境
+
+virtualenv -p /usr/bin/python py2
+-p 指定创建的虚拟环境的Python版本
+
+2. 列表生成式
+
+a = [x for x in range(5)]
+a = [0, 1, 2, 3, 4]
+
+3. 生成器产生的第一种方式
+
+g = (i for i in range(5))
+next(g) //0
+next(g) //1
+next(g) //2
+next(g) //3
+next(g) //4
+next(g) //异常
+
+for i in g:
+    print(i) // 0 1 2 3 4
+
+4. 生成器产生的第二种方式
+
+def fib(times):
+    a, b = 0, 1
+    n = 0
+    while n < times:
+        //print(b)
+
+        yield b //线程执行到这里, 会交出cpu执行权, 程序就停止在这里
+        
+        //temp = yield b
+        //print(b)
+        //这样写, 就可以通过g.send("hh"), 来把hh值传给temp
+        
+        a, b = b, a + b
+        n = n + 1
+    return "done"
+
+将print改为yield之后, 这个函数就变成了生成器, 可以通过
+g = fib(5)
+for i in g:
+    print(i)
+来输出1 1 2 3 5
+
+调用方式:
+g.__next__() <==> next(g)
+g.send("hhhh")
+
+5 迭代器
+迭代是访问集合元素的一种方式, 迭代器只能往前不能后退
+
+    可迭代对象(Iterable)
+        1. 集合数据类型 list tuple dict set str
+        2. 生成器和带yield的生成器函数
+
+    from collections import Iterable
+    isinstance([], Iterable)
+
+迭代器是指可以被next()函数调用, 并不断返回下一个值的对象
+    from collections import Iterator
+    isinstance((x for x in range(10)), Iterable)
+    iter([1, 2, 3])函数, 将可迭代对象转成迭代器
+
+list是可迭代对象, 但不是迭代器
+
+6. 使用global在函数内修改全局变量
+a = 10
+def fun():
+    global a
+    a = 20
+    print(a)
+此时 a = 20
+
+7. 闭包
+内部函数对外部函数作用域里变量的引用(非全局变量), 则成内部函数为闭包
+
+    # 定义一个函数
+    def outter(num):
+        # 在函数内部再定义一个函数, 并且这个函数用到了外部函数的变量
+        def inner(num_in):
+            return num + num_in
+        # 这里返回的就是闭包本身, 也就是闭包的结果
+        return inner
+
+闭包延长了外部函数变量的生命周期
+f = outter(10) # 此时外部函数的变量num的生命周期已经结束
+f(20) # 因为使用了闭包, 在这里num还可以使用
+返回 30
+
+8. 装饰器
+- 装饰器实际上就是一个闭包, 就是定义一个外部函数, 然后把一个待改造的函数当做参数传给这个外部函数. 
+- 然后在外部函数内部定义一个内部函数, 在这个内部函数里, 对外部函数的参数, 也就是那个当做参数的函数进行改造.
+- 最终返回这个内部函数
+注意: 
+    1. 如果被装饰的函数是带参数的函数, 则内部函数也需要带有与被装饰函数相同的参数
+    2. 为了更通用, 可以让内部函数的参数设置为(*args, **kwargs)
+    3. 为了更通用, 考虑到被装饰函数有返回值的情况, 则可以将
+        func()
+        修改为
+        ret = func()
+        return ret
+
+特性: 
+    1. 可以把被装饰的函数改造成其他函数
+    2. 可以在加载模块时立即执行
+
+作用: 修改封闭, 扩展开放
+    1. 引入日志
+    2. 函数执行时间
+    3. 函数前预备, 后处理
+    4. 权限校验
+    5. 缓存相关
+
+    def w1(func):
+        def inner():
+            # 改造函数
+            func()
+        return inner
+
+    @w1
+    def f1():
+        print("xxx")

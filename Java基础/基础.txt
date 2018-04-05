@@ -1,0 +1,439 @@
+强引用 软引用 弱引用 虚引用
+	强引用
+		是使用最普遍的引用：Object o=new Object();  特点：不会被GC
+		将对象的引用显示地置为null：o=null;     // 帮助垃圾收集器回收此对象
+		ArrayList的实现源代码, clear方法就会把数组中的每个元素设置为null
+	软引用
+		用来描述一些还有用但是并非必须的对象，在Java中用java.lang.ref.SoftReference类来表示。对于软引用关联着的对象，只有在内存不足的时候JVM才会回收该对象。(WeakHashMap)
+	弱引用
+		拥有更短暂的生命周期。在垃圾回收器线程扫描它所管辖的内存区域的过程中，一旦发现了只具有弱引用的对象，不管当前内存空间足够与否，都会回收它的内存。
+
+为什么需要public static void main(String[] args)
+	* 由于JVM在运行程序时，首先调用main方法，调用时不实例化这个类的对象，而是通过类名直接调用。因此需要是限制为public static
+	* 对于java中的main方法，jvm有限制，不能有返回值，因此返回值类型为void。
+	* main方法中还有一个输入参数，类型为String数组，这个也是java的规范，main方法中必须有一个入参，类型必须String[].作用是接收命令行输入参数的，命令行的参数之间用空格隔开。
+	* 字符串数组的名字可以自己设定的，根据习惯取名为args.main()方法中字符串参数数组。
+	* main()方法不准抛出异常，没有throws Exception。
+
+三种代码块
+	* 普通代码块：在方法或语句中出现的{}就称为普通代码块。普通代码块和一般的语句执行顺序由他们在代码中出现的次序决定——“先出现先执行”。
+	* 构造代码块：直接在类中定义且没有加static关键字的代码块称为{}构造代码块。构造代码块在创建对象时被调用，每次创建对象都会被调用，并且构造代码块的执行次序优先于类构造函数。
+	* 静态代码块：在java中使用static关键字声明的代码块。静态块用于初始化类，为类的属性初始化。每个静态代码块只会执行一次。由于JVM在加载类时会执行静态代码块，所以静态代码块先于主方法执行。在main方法中也是如此。
+		* 如果类中包含多个静态代码块，那么将按照"先定义的代码先执行，后定义的代码后执行"。
+
+java程序的初始化顺序
+	当实例化对象时，对象所在类的所有成员变量首先进行初始化，只有所在类的成员变量完成初始化时，才会调用对象所在类的构造函数创建对象。
+		1. 静态对象（变量）优先于非静态对象（变量）初始化，而且只初始化一次。
+		2. 父类优先于子类进行初始化。
+		3. 按成员变量的定义顺序进行初始化。
+		4. 执行顺序
+			父类静态变量，父类静态代码块，子类静态变量，子类静态代码块，父类非静态变量，父类构造代码块（非静态代码块），父类构造函数，子类非静态变量，子类构造代码块（非静态代码块），子类构造函数。
+
+总结接口:
+	1）接口用于描述系统对外提供的所有服务,因此接口中的成员常量和方法都必须是公开(public)类型的,确保外部使用者能访问它们；
+	2）接口仅仅描述系统能做什么,但不指明如何去做,所以接口中的方法都是抽象(abstract)方法；
+	3）接口不涉及和任何具体实例相关的细节,因此接口没有构造方法,不能被实例化,没有实例变量，只有静态（static）变量；
+	4）接口的中的变量是所有实现类共有的，既然共有，肯定是不变的东西，因为变化的东西也不能够算共有。所以变量是不可变(final)类型，也就是常量了。
+	5）
+		public static final + 必须给初值且不能改变
+		public abstract；抽象类，变量在子类中可以重新定义。
+
+总结抽象类：
+	（1）abstract关键字只能修饰类和方法，不能修饰字段。
+	（2）抽象类不能被实例化（无法使用new关键字创建对象实例），只能被继承。
+	（3）抽象类除了不能实例化之外，和普通类一样.
+	（4）含有抽象方法的类必须定义成抽象类。
+
+区别：
+	- 实现接口，要实现所有的方法，否则，就必须声明为抽象类；继承抽象类可以有选择的重写方法，抽象类中可以有非抽象方法。
+	- 接口是抽象方法和常量定义的集合，不能被实例化（new）；抽象类含有抽象方法，任何子类必须重写父类的抽象方法，否则自己必须声明为抽象类。抽象类除了不能实例化对象外和普通java类一样。
+
+protected方法：
+	0. protected方法对本类、同包、同包的子类是可见的。
+	1. 基类的protected方法对其不同包的子类来说，是不可见的。
+	2. 不能在一个子类中访问另一个子类的protected方法，即使它们在同一个包中。
+	注意：在派生类中覆盖基类的clone()方法时，要声明为public。目的是为了让其它类能调用这个类的clone()方法。
+
+方法的重载: 只是看参数的类型和参数的个数. 返回值不同不算方法的重载.
+
+构造函数
+	* 如果该类不想被实例化，可以将构造函数声明为private类型。
+	* 在对象实例化时初始化对象的成员变量。只执行一次。
+	* 构造函数名必须与类名相同，且不能由返回值。
+	* 普通方法可以和构造方法的方法名相同。
+	* 每个类可以有多个构造函数。程序员没有提供时，编译器会提供一个无参的构造函数，不会执行任何代码。
+	* 构造函数不能被继承，不能被覆盖，但可以重载，使用不同的参数个数或者参数类型定义。
+	
+	* 当父类没有提供无参数的构造函数时，子类的构造函数必须显式的调用父类的构造函数，用super关键字。子类构造函数需要显式调用父类构造函数时，super()必须为构造函数的第一条语句。
+	* 当父类提供了无参数的构造函数时，子类的构造函数可以不显式的调用父类的构造函数，编译器默认调用父类的无参构造函数。
+	
+	子类构造器会默认调用super()(无论构造器中是否写有super（）),用于初始化父类成员。
+	同时当父类中存在有参构造器时，必须提供无参构造器，子类构造器中并不会自动继承有参构造器，仍然默认调用super()，使用无参构造器。
+	因此，一个类想要被继承必须提供无参构造器。
+	使用this调用另一个重载的构造器只能在构造器中使用，而且必须作为构造器执行体的第一条语句。
+	this和super在构造函数中只能有一个，且都必须是构造函数当中的第一行。
+	
+	类中声明的变量有默认初始值；
+	方法中声明的变量没有默认初始值，必须在定义时初始化，否则在访问该变量时会出错。
+	boolean类型默认值是false
+
+多态的实现机制
+	基类的引用变量不仅可以指向基类的实例对象，也可以指向其子类的实例对象。
+	接口的引用变量也可以指向其实现类的实例对象。
+
+匿名内部类
+	只要一个类是抽象的或是需要继承的或是一个接口，那么其子类中的方法都可以使用匿名内部类来实现。最常用的情况就是在多线程的实现上，因为要实现多线程必须继承Thread类或是继承Runnable接口
+
+	1. 不用匿名内部类，就需要多写一个Child类
+		abstract class Person {
+		    public abstract void eat();
+		}
+		 
+		class Child extends Person {
+		    public void eat() {
+		        System.out.println("eat something");
+		    }
+		}
+		 
+		public class Demo {
+		    public static void main(String[] args) {
+		        Person p = new Child();
+		        p.eat();
+		    }
+		}
+	
+	2. 使用匿名内部类
+		abstract class Person {
+		    public abstract void eat();
+		}
+	
+		public class Demo {
+		    public static void main(String[] args) {
+		        Person p = new Person() {
+		            public void eat() {
+		                System.out.println("eat something");
+		            }
+		        };
+		        p.eat();
+		    }
+		}
+	
+		interface Person {
+		    public void eat();
+		}
+		 
+		public class Demo {
+		    public static void main(String[] args) {
+		        new Person() {
+		            public void eat() {
+		                System.out.println("eat something");
+		            }
+		        }.eat(); // 匿名内部类中这样调用函数, 该方法只能调用一次
+		    }
+		}
+	
+	3. Thread
+	    Thread t = new Thread() {
+	        public void run() {
+	            for (int i = 1; i <= 5; i++) {
+	                System.out.print(i + " ");
+	            }
+	        }
+	    };
+	    t.start();
+	
+	4. Runnable
+	    Runnable r = new Runnable() {
+	        public void run() {
+	            for (int i = 1; i <= 5; i++) {
+	                System.out.print(i + " ");
+	            }
+	        }
+	    };
+	    Thread t = new Thread(r);
+	    t.start();
+	
+	1. 匿名内部类其实就是内部类的简单样式
+	2. 定义匿名内部类的前提，内部类必须是继承一个类或者实现接口
+	3. 格式：new 父类或者接口(){定义子类的内容(如函数等)}
+	4. 其实匿名内部类就是一个匿名子类对象。
+	5. 匿名内部类定义的方法最好不要超过3个。多了建匿名内部类的代码会太多，很冗余。
+
+字符串的创建方式
+	“hello”; 
+		先到常量池中检查是否有hello字符串,如果没有,则在常量池中创建该字符串对象,并返回地址,如果已经存在,则直接返回常量池中的内存地址.
+	new String(“hello”);	
+		如果常量池中有了hello字符串，则不会再创建，而是拷贝常量池中的内容到堆内存中，创建一个该字符串的对象，再返回堆内存中的地址给字符串引用变量。
+
+final，finally，finalize
+	final成员: 基本数据类型,其值不可变.引用数据类型,其引用不可变
+	final方法: 不允许任何此类的继承类覆写这个方法,但是可以继承这个方法
+	final类: 不能被继承.final类中的成员可以final,也可以不final,但final类中的方法,都是final的.
+	 
+	finalize: Object类的protected方法，在垃圾收集器执行的时候会调用被回收对象的此方法，可以覆盖此方法提供垃圾收集时的其他资源回收，例如关闭文件等
+		* 现在使用try...finally...代码块代替finalize()方法，将要执行的后续操作放入到finally块中
+		* 当对象变成(GC Roots)不可达时，GC会判断该对象是否覆盖了finalize方法，若未覆盖，则直接将其回收。否则，若对象未执行过finalize方法，将其放入F-Queue队列，由一低优先级线程执行该队列中对象的finalize方法。执行finalize方法完毕后，GC会再次判断该对象是否可达，若不可达，则进行回收，否则，对象“复活”。
+
+equals / hashCode
+	1. 一般equals和==是不一样的，但是在Object中两者是一样的。
+	2. 若子类没有重写Object的equals方法，则比较的就是"=="，也就是内存地址是否相同。所以，判断两个对象是否相等，要重写该对象的equals方法和hashCode方法。
+	3. 若两对象equals，则hashcode一定相等；若两对象hashcode相等，则它两不一定equals；
+
+transient关键字: 
+	给一个实现了serilizable接口的类中的一些字段(密码)加上transient关键字, 则这些属性不会被序列化, 在网络中传输或在硬盘中持久化. 反序列化之后也无法获得该值.
+		1. transient关键字只能修饰变量，而不能修饰方法和类。
+		2. 一个静态变量不管是否被transient修饰，均不能被序列化。反序列化后类中static型变的值为当前JVM中对应static变量的值，这个值是JVM中的, 不是反序列化得出的
+		3. 若实现的是Serializable接口，则所有的序列化将会自动进行。若实现的是Externalizable接口，则没有任何东西可以自动序列化，需要在writeExternal方法中进行手工指定所要序列化的变量，这与是否被transient修饰无关
+
+Java自动装箱和自动拆箱
+	int 值类型, 用a == b来判断相等
+	Integer 引用类型 
+		a == b判断是否是同一个Object; 
+		a.equals(b) / Objects.equals(a, b)才是判断值是否相同.
+		后者是java1.7中新增的,可以避免a为null时,第一种方法出现的空指针异常.
+	
+	//装箱
+	Integer a = 2;
+	Integer b = new Integer(2);
+	//拆箱
+	int v = a.intValue();
+	
+	new Integer(2) == 2;	true(java自动拆箱)
+	new Integer(2) == new Integer(2);		false
+	Integer.valueOf(2) == Integer.valueOf(2);		true
+		java自动为我们生成-128~127之间的缓存箱子.所以2的话两个箱子是相等的.
+	Integer.valueOf(2).intValue() == 2;		true
+	new Integer(2).equals(new Integer(2));		true
+		equals判断值是否相等.
+
+try finally return问题
+	1. try里有return，finally中的code会执行，而且会在return之前执行。
+	2. 在try语句中，try要把返回的结果放置到不同的局部变量当中，执行finaly之后，再从局部变量中取出原来的结果返回。
+	3. 因此，即使finaly中对变量进行了改变，但是不会影响返回结果。因为使用栈保存返回基本数据类型的值，即使在finaly当中进行数值操作，但是影响不到之前保存下来的具体的值。
+	4. 但是，如果在finally中修改list，map，自定义类等引用类型时，虽然在进入了finaly之前保存了引用的地址，但是在finaly中引用地址指向的内容改变了，所以会影响try中return的返回值。
+	
+	总结：	
+		1. 影响返回结果的前提是在非finally语句块中有return 且非基本类型.  	
+		2. 不影响返回结果的前提是非finally块中有return 且为基本类型.  
+		3. finally中最好不要包含return，否则程序会提前退出，返回值不是try或catch中保存的返回值.
+
+Enum:
+
+1. 声明一个enum, 实际上定义了一个类。可以调用其中定义的方法。
+2. Java编译器会自动在enum类型中插入一些方法，其中就包括values(). 因此, 程序在没编译的时候，没法查看values()方法的源码。
+3. 自定义的枚举无法继承, 因为所有enum类型, 都默认隐式的继承了Enum类. 而Java是单继承.
+4. 枚举类中的元素无法通过下标值来访问，如果你想指定访问枚举类中的某个值，你只能直接写出它们的值，除此之外，别无他法。但是枚举类的values方法，可以将枚举类转换成一个枚举类型的数组，转换成数组之后, 就可以通过下标来访问枚举类中的值。
+
+	enum Direction {  
+	    LEFT, RIGHT, UP, DOWN  
+	}  
+
+	Direction dirs[] = Direction.values();  
+	for (int i = 0; i < dirs.length; i++) {  
+	     System.out.println(dirs[i]);  
+	}  
+	
+	//获得一个随机枚举值
+	Random r = new Random();  
+	int ri = r.netInt(dirs.length);  
+	Direction dir = dirs[ri];  
+
+反射
+	定义
+		在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；
+		对于任意一个对象，都能够调用它的任意一个方法和属性；
+		也就是说, 可以动态获取信息, 动态调用对象的方法.
+	
+	一个类new出的两个对象.getClass()获得的字节码对象是相同的, 但是对象不同(!=)
+	
+	利用配置文件加载类, 调用方法.
+		//读取配置文件
+		Properties prop = new Properties();
+		FileReader fr = new FileReader("test.txt");
+		prop.load(fr);
+		fr.close();
+	
+		//获取配置文件中的值
+		String className = prop.getProperty("className");
+		String methodName = prop.getProperty("methodName");
+	
+		//获得Class对象
+		Class clazz = Class.forName(className);
+		//创建对象
+		Constructor con = clazz.getConstructor();
+		Object obj = con.newInstance();
+		//调用方法
+		Method method = clazz.getMethod(methodName);
+		method.invoke(obj);
+	
+	获取Class对象的三种方式:
+		new Person().getClass();
+		Person.class;
+		Class.forName("me.hds.model.Person");
+	
+	反射可以跳过泛型检测
+		ArrayList<Integer> array = new ArrayList<>();
+		//往泛型是Integer的集合中加入String类型的元素.
+		Class c = arr.getClass();
+		Method m = c.getMethod("add", Object.class);
+		m.invoke(array, "hello");
+	
+	创建一个class文件表示的实例对象，底层会调用空参数的构造方法
+		personClass.newInstance()
+	获取非私有的构造函数
+		Constructor constructor = personClass.getConstructor(Long.class,String.class);
+		Person person = (Person)constructor.newInstance(100L,"zhangsan");
+	获得私有的构造函数
+		Constructor con = personClass.getDeclaredConstructor(String.class);
+		con.setAccessible(true);//强制取消Java的权限检测
+		Person person2 = (Person)con.newInstance("zhangsan");
+	访问非私有的成员变量
+		Constructor constructor = personClass.getConstructor(Long.class,String.class);
+		Object obj = constructor.newInstance(100L,"zhangsan");
+		Field field = personClass.getField("name");
+		field.set(obj, "lisi");
+	访问私有的成员变量
+		Constructor constructor  = personClass.getConstructor(Long.class);
+		Object obj = constructor.newInstance(100L);
+		Field field2 = personClass.getDeclaredField("id");
+		field2.setAccessible(true);//强制取消Java的权限检测
+		field2.set(obj,10000L);
+	获取非私有的成员函数
+		Object obj = personClass.newInstance();//获取空参的构造函数
+		Method toStringMethod = personClass.getMethod("toString");
+		Object object = toStringMethod.invoke(obj);
+	获取私有的成员函数
+		Object obj = personClass.newInstance();//获取空参的构造函数
+		Method method = personClass.getDeclaredMethod("getSomeThing");
+		method.setAccessible(true);
+		Object value = method.invoke(obj);
+	获取当前加载这个class文件的类加载器对象
+		personClass.getClassLoader();
+	获取某个类实现的所有接口
+		Class[] interfaces = personClass.getInterfaces();
+	获取当前类的直接父类
+		personClass.getGenericSuperclass();
+	获取到一个输入流
+		personClass.getResourceAsStream("/log4j.properties");
+	判断当前的Class对象表示是否是数组
+		personClass.isArray();
+	判断当前的Class对象表示是否是枚举类
+		personClass.isEnum();
+	判断当前的Class对象表示是否是接口
+		personClass.isInterface();
+
+工具类
+
+Arrays.toString(): 打印数组, [a, b, c]
+​	
+Arrays.sort():
+	Collections.sort()：经过修改的归并排序。
+	JDK7中使用了TimSort，是稳定排序。
+	
+	对基本数据类型(int double)的数组，默认只提供升序排列，没有提供相应的降序排列方法.
+	对字符串, 第二个参数可忽略大小写, 默认大写在前, 字典序排序.
+		反向排序: Arrays.sort(strArray, Collections.reverseOrder());
+	
+	原理
+		对基本数据类型，使用**经过优化的快速排序**。
+			1. 在数组规模小于7时，使用直接插入排序， 
+			2. 当数组规模较大时，合理的选择快排的枢轴元素！如在规模小于40时，在数组的首，中，尾三个位置上的数，取中间大小的数做枢轴；在数组规模大于40时，从数组中取位置均匀分布的9个数，然后每三个数一组取中间数，最后三个中间数再取中间数。确定枢轴后，与数组的第一个元素交换，之后的快排与普通快排一样。
+			3. 当数组中有大量重复元素时，选择重复元素作为枢轴。
+	
+		对引用数据类型，使用**经过优化的归并排序**。 
+			1. 当数组规模较小时，使用直接插入排序。
+			2. 规模较大时，使用归并排序，且当合并的两个有序序列中，低子序列的最高元素小于高子序列的最低元素时，无序执行合并算法。
+	
+		实现数组的降序排列：
+			要传入要比较的数组，以及用于比较的比较器对象,该对象要实现Comparator接口中的compare方法
+				Integer[] arr = {1,2,3,4,5,6};
+				Arrays.sort(arr, new Comparator<Object>(){
+				    public int compare(Object arg0, Object arg1){
+				        Integer a = (Integer)arg0;
+				        Integer b = (Integer)arg1;
+				        int temp = Integer.compare(a, b);
+				        return -temp;
+				    }
+				});
+	
+		对引用类型的排序:
+			如果父类实现了Comparator接口，那么其子类都可以使用
+				class Dog{
+				    int size;
+				    int weight;
+				 
+				    public Dog(int s, int w){
+				        size = s;
+				        weight = w; 
+				    }
+				}
+	
+				class DogSizeComparator implements Comparator<Dog> {
+					public int compare(Dog o1, Dog o2){
+						return o1.size - o2.size;
+					}
+				}
+	
+				Arrays.sort(dogArray, new DogSizeComparator());
+
+Comparable和Comparator:
+	(compareTo(Object o) | compare(Object o1, Object o2))
+
+	1. Comparable是**排序接口**，若一个类实现了Comparable接口，就意味着“该类支持排序”。
+		实现Comparable接口的类支持排序，假设现在存在“实现Comparable接口的类的对象的List列表(或数组)”，则该List列表(或数组)可以通过Collections.sort（或Arrays.sort）进行排序。 
+	
+		Comparable 接口仅仅只包括一个方法，它的定义如下: 
+			public interface Comparable<T> { 
+				public int compareTo(T o); 
+			}
+	
+		假设我们通过 x.compareTo(y) 来“比较x和y的大小”。若返回“负数”，意味着“x比y小”；返回“零”，意味着“x等于y”；返回“正数”，意味着“x大于y”。 
+	
+	2. Comparator是**比较器接口**,我们若需要控制某个类的次序，而该类本身不支持排序，即没有实现Comparable接口；那么，我们可以建立一个“该类的比较器”来进行排序。这个“比较器”只需要实现Comparator接口即可。 
+		Comparator 接口仅仅只包括两个函数，它的定义如下：
+			public interface Comparator<T> {
+			    int compare(T o1, T o2);
+			    boolean equals(Object obj);
+			}
+	
+		(1) 若一个类要实现Comparator接口：它一定要实现compare(T o1,T o2) 函数
+		(2) int compare(T o1, T o2) 是“比较o1和o2的大小”。返回“负数”，意味着“o1比o2小”；返回“零”，意味着“o1等于o2”；返回“正数”，意味着“o1大于o2”。 
+
+错误和异常
+	1. 所有异常都是Throwable类的子类或子类的子类。Error类和Exception类是Throwable的两个直接子类
+	2. Throwable类是Object类的直接子类，并且它实现了Serializable接口.这为所有的异常对象都能够轻松跨越Java组件系统做好了最充分的物质准备
+	
+	1. Error类包括一些严重的, 程序不能处理的系统错误类，如内存溢出、虚拟机错误、栈溢出等。这类错误一般与硬件有关，与程序本身无关，通常由系统进行处理，程序本身无法捕获和处理。合理的应用程序不应该去try/catch这种错误。
+	2. Exception类是设计中早已考虑到很常见的错误，如中断异常、非法存取异常，文件或类没找到异常, SQLException等。Java要求必须对这些可能出现的异常进行捕获，并对其进行处理。
+	3. RunTimeException是Exception的子类。如InterruptedException, 空指针异常, 错误的类型转换，除零异常，访问数组下标越界异常。
+		它们虽然是由程序本身引起的异常，但不是程序主动抛出的，而是在程序运行中产生的。
+		RuntimeException的异常是否出现不可预料，出现了的话，就中止处理。也就是说，编译能通过，但是一运行就终止了。可以从try/catch中恢复, 但不建议这样做, 因为本身就是bug.
+	4. Error和RuntimeException及其子类都是未检查的异常，而所有其他的Exception类都是检查了的异常
+	
+	throws/throw
+		throw是语句抛出一个异常。它明确表示这个地方要抛出异常的实例.(事实)
+			语法: throw e;
+	
+		throws用在声明方法时, 表示可能会抛出异常. 由方法的调用者处理这个异常.(倾向和可能)
+			语法: throws E1,E2,E3 
+			只是告诉程序这个方法可能会抛出这些异常，方法的调用者可能要处理这些异常，而这些异常E1，E2，E3可能是该函数体产生的。
+				void function(int a) throws Exception1, Exception3 {
+					try {
+						......
+					} catch(Exception1 e) {
+						throw e;
+					}	catch(Exception2 e) {
+						System.out.println("出错了！");
+					}
+					if(a!=b)
+						throw new Exception3("自定义异常");
+				}
+
+java编译之后的方法签名中, 没有变量的名称, 只有变量的类型
+
+===============================
+
+类变量也叫静态变量，也就是在变量前加了static 的变量；
+实例变量也叫对象变量，即没加static 的变量；
+
+区别在于：类变量和实例变量的区别在于：类变量是所有对象共有，其中一个对象将它值改变，其他对象得到的就是改变后的结果；而实例变量则属对象私有，某一个对象将其值改变，不影响其他对象

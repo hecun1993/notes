@@ -1,0 +1,99 @@
+import pandas as pd
+
+df = pd.read_csv("")
+df.head(10)
+
+df.mean() 求出每一列的均值
+df["sample_1"].mean()
+
+df.median() 中位数
+
+df.quantile(q=0.25) 四分位数
+
+df.mode() 众数
+
+df.std() 标准差
+df.var() 方差
+
+df.sum()
+df.skew() 偏态系数 如果是负数, 则平均值偏小, 大部分数据都大于平均值
+df.kurt() 峰度系数 是以正态分布为0作为标准, 如果是负值, 则比较平缓
+
+import scipy.stats as ss
+ss.norm 得到正态分布
+
+ss.norm.stats(moments="mvsk") 查看正态分布中, 均值方差偏态系数峰态系数的值
+ss.norm.pdf(0.0) 查看正态分布在0.0处的值
+ss.norm.ppf(0.9) 只能传入0-1的数, 表示积分值为0.9时, 横坐标是从负无穷到多少
+ss.norm.cdf(2) 从负无穷积分积到2, 值是多少
+
+ss.norm.rvs(size=10) 产生服从正态分布的10个数字
+ss.chi2 卡方分布
+ss.t t分布
+ss.f f分布
+
+df.sample(n=10) 从df数据中抽样10个数据
+df.sample(frac=0.01) 指定抽样的比例
+
+类似于数据库中的合并表的操作
+df_merge = pd.merge(df1, df2, on = ['user_id', 'user_id'])
+
+交叉表, 将一张大表改成, 行为某一字段, 列为另一字段
+cross = pd.crosstab(df_merge['user_id'], df_merge['aisle'])
+cross.head(10)
+
+由于获得的数据, 有很多值是0, 属于无效数据 所以需要用PCA进行降维
+pca = PCA(n_components=0.9) # 保留百分之九十的信息量(小数)  / 减少到的特征数量(整数)
+data = pca.fit_transform(cross)
+通过data.shape
+发现, 原先的列属性(维度)有134个, 现在降维之后, 只剩下27个
+
+特征的抽取 预处理 降维
+
+特征选择: 利用方差较小就删除的特点
+sklearn.feature_selection.VarianceThreshold
+VarianceThreshold(threshold = 0.0) 删除所有低方差的特征
+
+def var():
+	var = VarianceThreshold(threshold=0.0)
+	data = var.fit_transform([[0, 2], [0, 1]])
+	print(data)
+0 0的那一列会被删除
+
+主成分分析
+
+sklearn.decomposition
+PCA是一种分析, 简化数据集的技术, 是将数据维数压缩, 尽可能降低原先数据的维数, 损失少量信息.
+可以从拍照来理解. 拍照就是把三维变成二维, 但照片都有一个最好的角度, 选择这个最好的角度, 就能识别出这个三维的物体.
+
+PCA可以削减回归分析或者聚类分析中的特征数量
+
+高维度的数据, 不同特征之间可能是相关的, 所以可以削减其中的一个特征
+
+数据的归一化
+
+x` = (x - min) / (max - min)
+x`` = x` * (1 - 0) + 0 
+归一化到0-1之间
+如果归一化到其他范围, 修改 1 和 0 即可
+
+from sklearn.preprocessing import MinMaxScaler
+
+mm = MinMaxScaler()
+mm = MinMaxScaler(feature_range=(2, 3))
+data = mm.fit_transform([[], []])
+print(data)
+
+但是, 数据存在异常点, 会对max和min影响很大. 所以归一化有一些问题
+
+标准化: 使得某一个特征对最终的结果不会造成很大的影响
+(优势在于, 异常点对均值的影响不大)
+x` = (x - mean) / std
+
+StandardScaler处理之后, 所有数据都集中在均值为0标准差为1附近
+
+from sklearn.preprocessing import StandardScaler
+
+std = StandardScaler()
+data = std.fit_transform([[], []])
+print(data)

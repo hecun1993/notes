@@ -1,0 +1,49 @@
+启动Jupyter: jupyter notebook
+
+魔法命令1:
+    %run hello.py
+    (此时, hello.py中的hello函数已经被加载到内存中, 我们可以在notebook中直接使用hello函数)
+
+魔法命令2:
+    %timeit L = [i ** 2 for i in range(1000)]
+
+    %%timeit
+    L = []
+    for n in range(1000):
+        L.append(n ** 2)
+
+    %time L = [i ** 2 for i in range(1000)]
+    只执行一次
+
+import numpy as np
+np.__version__
+
+import array
+arr = array.array('i', [i for i in range(10)])
+(array类型的数据结构是限定其中的数据类型的, 上述array只能是int, 但python中的List是可以有不同类型的数据的)
+
+nparr = np.array([i for i in range(10)])
+(有一些向量矩阵相关的性质)
+(只能存一种类型)
+nparr.dtype
+(查看array中存的数据的类型)
+
+np.zeros(10)
+np.zeros(10, dtype=int)
+np.zeros(shape = (3, 5)) 3*5的矩阵
+
+np.ones(10)
+
+np.full((3, 5), fill_value=666)
+
+np.arrange(0, 20, 0.2)
+np.arrange(10)
+(从0开始, 到10终止, 步长为1)
+
+np.linspace(0, 20, 10)
+(10的意思是截出0~20之间等间距的10个数)
+
+np.random.randint(0, 10)
+(从0到10的随机数)
+np.random.randint(0, 10)
+(从0到10的随机数)

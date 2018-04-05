@@ -1,0 +1,361 @@
+HDFS: 分布式文件系统
+    可扩展 / 容错性 / 海量数据存储
+    - 将文件切分成指定大小的数据块, 并以多副本的形式存储在多个机器上
+    - 数据的切分, 多副本, 容错等操作对用户是透明的(用户操作的仍然是文件)
+
+YARN: 资源调度和管理系统
+    负责整个集群资源的管理和调度
+    可扩展 / 容错性 / 多框架资源统一调度
+
+MapReduce: 分布式计算框架
+    可扩展 / 容错性 / 海量数据离线处理
+
+狭义的hadoop:
+	适合大数据分布式存储(HDFS) 分布式计算(MapReduce) 资源调度(YARN)的平台
+广义的hadoop:
+	hadoop的生态系统, 每一个子系统只解决某一个特定的问题域, 小而精的多个小系统
+
+wordcount的过程:
+    input -> splitting -> mapping -> shuffling -> reducing -> final result
+
+===================================
+
+分布式文件系统HDFS
+
+    问题:
+        1. 不管文件多大, 都存储在一个节点上, 在进行数据处理的时候, 很难进行并行处理, 节点可能成为网络瓶颈, 很难进行大数据的处理.
+        2. 存储负载很难均衡, 每个节点的利用率低.
+
+    HDFS架构:
+        1. 1个Master(NameNode/NN), N个Slaves(DataNode/DN)
+        2. 一个文件会被拆分成多个Block
+            BlockSize: 128M
+
+    NN:
+        1. 负责客户端请求的响应
+        2. 负责元数据(文件的名称, 副本系数, Block存放的DN)的管理
+
+    DN:
+        1. 存储用户的文件对应的数据块(Block)
+        2. 定期向NN发送心跳信息, 汇报本身及其所有block信息, 健康状况
+
+    建议: 
+        NN和DN要部署在不同的节点上
+        HDFS不支持多并发的写操作
+
+    HDFS副本存放策略
+        第一个block存放在当前接收上传文件响应的client的机器上, 第二个放在另外一个机架的机器上, 第三个放在另外一个机架的另外一个机器上
+
+    启动hdfs:
+
+        1. 把HADOOP_HOME/bin配置到环境变量中
+
+        2. yum install ssh
+            
+            免密登录
+            ssh-keygen -t rsa
+            cd .ssh
+            cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys
+
+        3. hadoop配置文件的修改(hadoop_home/etc/hadoop)
+
+        hadoop-env.sh
+            增加JAVA_HOME
+
+        core-site.xml
+            <property>
+                <name>fs.defaultFS</name>
+                <value>hdfs://hadoop:8020</value>
+            </property>
+
+            <property>
+                <name>hadoop.tmp.dir</name>
+                <value>/home/hadoop/app/tmp</value>
+            </property>
+
+        hdfs-site.xml
+            <property>
+                <name>dfs.replication</name>
+                <value>1</value>
+            </property>
+
+        slaves
+            hadoop01
+            hadoop02
+
+        4. 启动hdfs
+
+        首先格式化文件系统（仅第一次执行，不要重复执行）:
+            cd bin/
+            ./hdfs namenode -format
+
+        启动hdfs
+            cd sbin/
+            ./start-dfs.sh
+
+        验证是否启动成功
+            jps
+                DataNode
+                SecondaryNameNode
+                NameNode
+            http://hadoop:50070
+
+        停止
+            cd sbin/
+            ./stop-dfs.sh
+
+        hadoop shell
+            hadoop fs(hdfs fds)
+
+            hadoop fs -ls /
+            hadoop fs -ls -R /
+            hadoop fs -put hello.txt /
+            hadoop fs -text /hello.txt
+            hadoop fs -mkdir /test
+            hadoop fs -mkdir -p /test/a/b
+            hadoop fs -get /test/hello.txt
+            hadoop fs -rm -R /
+
+        HDFS不适合小文件存储.(都需要元数据信息)
+
+================================
+
+YARN
+
+    Hadoop1.x时: 没有YARN
+        MapReduce: Master/Slave架构, 1个JobTracker带多个TaskTracker
+
+        JobTracker: 负责资源管理和作业调度
+        TaskTracker:
+            定期向JT汇报本节点的健康状况, 资源使用情况, 作业执行情况
+            接收来自JT的命令: 启动任务(map/reduce), 杀死任务
+
+    YARN: 
+        不同计算框架可以共享一个HDFS集群上的数据, 享受整体的资源调度, 按资源需要进行分配, 进而提高集群资源的利用率
+    XXX on YARN:
+            Spark/MapReduce/Storm/Flink
+
+    YARN架构:
+        1. ResourceManager: RM
+            整个集群同一时间提供服务的RM只有一个, 负责集群资源的统一管理和调度
+            处理客户端的请求: 提交一个作业, 杀死一个作业
+            监控NM, 一旦某个NM挂了, 那么该NM上运行的任务需要告诉AM, 如何处理这个task
+
+        2. NodeManager: NM
+            整个集群中有多个, 负责自己节点的资源管理和使用
+            定时向RM汇报本节点的资源使用情况
+            接收并处理来自RM的各种命令: 启动Container
+            一个NM中会运行很多task, 每个task可能属于不同的AM
+            处理来自AM的命令
+
+        3. ApplicationMaster: AM
+            每个应用程序(MR/Spark)对应一个, 负责应用程序的管理
+            为应用程序向RM申请资源(core, memory), 分配给内部的task
+            需要与NM通信, 来启动/停止task, task和AM都运行在container里
+
+        4. Container
+            封装了cpu, memory等资源的容器
+            是一个任务运行环境的抽象
+
+        5. Client
+            提交作业
+            查询作业的运行进度
+            杀死作业
+
+    搭建YARN(hadoop_home/etc/hadoop)
+        mapred-site.xml
+            <property>
+                <name>mapreduce.framework.name</name>
+                <value>yarn</value>
+            </property>
+
+        yarn-site.xml
+            <property>
+                <name>yarn.nodemanager.aux-services</name>
+                <value>mapreduce_shuffle</value>
+            </property>
+
+        启动:
+            cd sbin/
+            ./start-yarn.sh
+            ./stop-yarn.sh
+
+        访问:
+            jps
+                ResourceManager
+                NodeManager
+            http://hadoop:8088
+
+    提交MapReduce作业到YARN运行
+        hadoop_home/share/hadoop/mapreduce
+            hadoop-mapreduce-examples-2.6.0-cdh5.7.0.jar
+
+        hadoop jar hadoop-mapreduce-examples-2.6.0-cdh5.7.0.jar pi 2 3
+
+    用户向RM提交一个Spark作业, RM会与一个NM通信, 要求它为作业分配第一个container, 这个container用来启动应用程序(AM), AM会与RM相互通信, 向RM注册, 申请本作业需要的资源(cpu memory) 用户可以通过RM查询作业的运行情况, AM会在对应的NM上启动任务, 任务都是以container方式运行的, 也就是NM会启动一些container, 里面就是task
+
+========================================
+
+MapReduce
+
+    Split: 交由MapReduce作业来处理的数据块, 是MapReduce中最小的计算单元.
+        HDFS中的BlockSize是最小的存储单元, 默认情况下是一一对应的
+
+    InputFormat:
+        将输入数据进行分片(Split): InputSplit[] getSplits()
+        TestInputFormat: 处理文本格式的数据
+    OutputFormat: 
+        输出
+
+    MapReduce1.x的架构
+        1. JobTracker: JT
+            作业的管理者
+            将作业分解成许多任务: Task(MapTask和ReduceTask)
+            将任务分派给TaskTracker运行
+            作业的监控, 容错处理(task作业挂了, 重启task的机制)
+            在一定的时间间隔内, JT没有收到TT的心跳信息, 则TT上运行的任务会被指派到其他的TT上运行
+
+        2. TaskTracker: TT
+            任务的执行者
+            在TT上运行Task(MapTask和ReduceTask)
+            与JT进行交互: 执行/启动/停止作业, 发送心跳信息给JT
+
+        3. MapTask
+            自己开发的map任务, 交由该Task处理
+            解析每条(行)记录的数据, 交给自己的map方法处理, 把每个单词变成(单词, 1)
+            将map的输出结果写到本地磁盘系统
+
+        4. ReduceTask
+            将MapTask输出的数据进行读取, 按照数据进行分组, 传给我们自己编写的reduce方法处理
+            将输出结果写到HDFS中
+
+    使用Java开发
+
+    编译: 
+        mvn clean package -DskipTests
+    上传到服务器 
+        scp target/hadoop-train-1.0.jar hadoop@hadoop:~/lib
+    运行: 
+        hadoop jar /home/hadoop/lib/hadoop-train-1.0.jar com.imooc.hadoop.mapreduce.WordCountApp hdfs://hadoop:8020/hello.txt hdfs://hadoop:8020/output/wc
+
+    先启动hadoop: sbin/start-all.sh
+
+    相同的代码和脚本再次执行, 会报错
+    在MR中, 输出文件是不能事先存在的
+        1. 先删除
+            hadoop fs -rm -r /output/wc
+        2. 在代码中删除
+
+    Combiner
+        在本地先做了一个reduce操作, 从而减少了网络传输的key-value的数量
+        使用场景:
+            求和 / 次数 但平均数不适用
+
+    Partitioner: 决定MapTask输出的数据交由哪个ReduceTask处理
+        分发的key的hash值对Reduce Task的个数取模
+
+    jobhistory
+        记录已经运行完的MapReduce信息到指定的HDFS目录下
+        默认不开启
+        配置开启
+            1. hadoop_home/etc/hadoop/mapred-site.xml
+                <property>
+                    <name>mapreduce.jobhistory.address</name>
+                    <value>hadoop:10020</value>
+                </property>
+                <property>
+                    <name>mapreduce.jobhistory.webapp.address</name>
+                    <value>hadoop:19888</value>
+                </property>
+                <property>
+                    <name>mapreduce.jobhistory.don-dir</name>
+                    <value>/history/done</value>
+                </property>
+                <property>
+                    <name>mapreduce.jobhistory.intermediate-done-dir</name>
+                    <value>/history/done_intermediate</value>
+                </property>
+
+            2. hadoop_home/etc/hadoop/yarn-site.xml
+                <property>
+                    <name>yarn.log-aggregation-enable</name>
+                    <value>true</value>
+                </property>
+
+            3. 启动HDFS和YARN之后, 还需要启动sbin/me-jobhistory-daemon.sh
+                ./sbin/me-jobhistory-daemon.sh start historyserver
+
+
+    用户行为日志的生成渠道
+        nginx
+        ajax
+
+    日志数据内容:
+        1. 访问的系统属性: 操作系统, 浏览器
+        2. 访问特征: 点击的url, 从哪个url跳转来的(referer), 页面上的停留时间
+        3. 访问信息: session_id, 访问ip(地区信息)
+
+    要使用别人的pom项目, 则先打包安装到本地
+        mvn clean install -DskipTest
+
+    Linux hostname设置: 
+        /etc/sysconfig/network
+            NETWORDKING=yes
+            HOSTNAME=hadoop01
+
+    hostname和ip
+        /etc/hosts
+            192.168.93.100 hadoop
+
+    hadoop: NameNode ResourceManager DataNode NodeManager
+    hadoop01: DataNode NodeManager
+    hadoop02: DataNode NodeManager
+
+    在每台机器上都运行: ssh-keygen -t rsa
+
+    以hadoop为主, 在该机器上执行
+        ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop
+        ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop01
+        ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop02
+
+    jdk安装
+
+    hadoop安装
+        slaves:
+            hadoop
+            hadoop01
+            hadoop02
+
+    分发
+        scp -r ~/app hadoop@hadoop01:~/
+        scp -r ~/app hadoop@hadoop02:~/
+
+        scp ~/.bash_profile hadoop@hadoop01:~/
+        scp ~/.bash_profile hadoop@hadoop02:~/
+
+        source ~/.bash_profile
+
+    对NN做格式化:
+        只在hadoop上执行即可
+            hdfs namenode -format
+
+    启动hadoop即可
+        ./sbin/start-all.sh
+
+    jps
+        hadoop:
+            SecondaryNameNode
+            DataNode
+            NodeManager
+            NameNode
+            ResourceManager
+
+        hadoop01:
+            NodeManager
+            DataNode
+
+        hadoop02:
+            NodeManager
+            DataNode
+
+    webui: hadoop:50070 hadoop:8088

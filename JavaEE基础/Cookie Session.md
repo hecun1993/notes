@@ -1,0 +1,107 @@
+## Session
+
+### Cookie和Session
+
+- Cookie通过在客户端记录信息确定用户身份，Session通过在服务器端记录信息确定用户身份。但是Session的实现依赖于Cookie, sessionId(session的唯一标识需要存放在客户端)
+- cookie数据存放在客户的浏览器上，session数据放在服务器上。
+- cookie不是很安全，别人可以分析存放在本地的cookie并进行cookie欺骗
+   考虑到安全应当使用session。
+- session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能,考虑到减轻服务器性能方面，应当使用cookie。
+- 单个cookie保存的数据不能超过4K，很多浏览器都限制一个站点最多保存20个cookie。
+
+
+- 将登陆信息等重要信息存放为session
+- 其他信息如果需要保留，可以放在cookie中，比如购物车
+- 购物车最好使用cookie，但是cookie是可以在客户端禁用的，这时候我们要使用cookie+数据库的方式实现，当从cookie中不能取出数据时，就从数据库获取。
+
+
+
+### tomcat和session:
+
+1. 对Tomcat而言，Session是一块在服务器开辟的内存空间，其存储结构为**ConcurrentHashMap**；
+2. Http协议是一种无状态协议，即每次服务端接收到客户端的请求时，都是一个全新的请求，服务器并不知道客户端的历史请求记录；
+3. Session的主要目的就是为了弥补Http的无状态特性。简单的说，就是服务器可以利用session存储客户端在同一个会话期间的一些操作记录；
+
+
+
+#### 1. 服务器如何判断客户端发送过来的请求是属于同一个会话？
+
+答：用Session id区分，Session id相同的即认为是同一个会话，在Tomcat中Session id用JSESSIONID表示；
+
+#### 2. 服务器、客户端如何获取Session id？Session id在其之间是如何传输的呢？
+
+* 服务器第一次接收到请求时，开辟了一块Session空间（创建了Session对象），同时生成一个Session id，并通过响应头的Set-Cookie：“JSESSIONID=XXXXXXX”命令，向客户端发送要求设置cookie的响应；
+* 客户端收到响应后，在本机客户端设置了一个JSESSIONID=XXXXXXX的cookie信息，该cookie的过期时间为浏览器会话结束；
+* 接下来客户端每次向同一个网站发送请求时，请求头都会带上该cookie信息（包含Session id）；
+* 服务器通过读取请求头中的Cookie信息，获取名称为JSESSIONID的值，得到此次请求的Session id；
+
+> 服务器只会在客户端第一次请求响应的时候，在响应头上添加Set-Cookie：“JSESSIONID=XXXXXXX”信息，接下来在同一个会话的第二第三次响应头里，是不会添加Set-Cookie：“JSESSIONID=XXXXXXX”信息的；
+>
+> 而客户端是会在每次请求头的cookie中带上JSESSIONID信息；
+
+
+
+### tomcat中的session是如何实现的
+
+* Tomcat中一个会话对应一个session，其实现类是StandardSession，查看源码，可以找到一个attributes成员属性，即存储session的数据结构，为ConcurrentHashMap，支持高并发的HashMap实现；
+
+```java
+protected Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
+```
+
+* Tomcat中多个会话对应的session是由ManagerBase类来维护，查看其代码，可以发现其有一个sessions成员属性，存储着各个会话的session信息
+
+```java
+protected Map<String, Session> sessions = new ConcurrentHashMap<String, Session>();
+```
+
+* 客户端每次的请求，tomcat都会在HashMap中查找对应的key为JSESSIONID的Session对象是否存在
+
+
+
+先看doGetSession方法中的如下代码，这个一般是第一次访问的情况，即创建session对象，session的创建是调用了ManagerBase的createSession方法来实现的; 
+
+response.addSessionCookieInternal方法的功能就是往响应头写入“Set-Cookie”信息；最后，还要调用session.access方法记录下该session的最后访问时间，因为session是可以设置过期时间的；
+
+```java
+session = manager.createSession(sessionId);
+
+if ((session != null) && (getContext() != null) && getContext().getServletContext(). getEffectiveSessionTrackingModes().contains(SessionTrackingMode.COOKIE)) {
+	Cookie cookie = ApplicationSessionCookieConfig.createSessionCookie(context, session.getIdInternal(), isSecure());
+    response.addSessionCookieInternal(cookie);
+}
+
+if (session == null) {
+    return null;
+}
+
+session.access();
+return session;
+```
+
+
+
+再看doGetSession方法中的如下代码，这个一般是第二次以后访问的情况，通过ManagerBase的findSession方法查找session，其实就是利用map的key从ConcurrentHashMap中拿取对应的value，这里的key即requestedSessionId，也即JSESSIONID，同时还要调用session.access方法，记录下该session的最后访问时间；
+
+```java
+if (requestedSessionId != null) {
+    try {
+        session = manager.findSession(requestedSessionId);
+    } catch (IOException e) {
+        session = null;
+    }
+
+    if ((session != null) && !session.isValid()) {
+        session = null;
+    }
+
+    if (session != null) {
+        session.access();
+        return (session);
+    }
+}
+```
+
+建立会话之后, 后续的request中的sessionid(请求头), cookie中的sessionid(在浏览器开发者工具中找到的cookie)和服务器端session.getId()拿到的是相同的sessionid. 
+
+>  注意: tomcat重启之后, session就会改变

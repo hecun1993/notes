@@ -1,0 +1,92 @@
+日志收集
+	Flume
+	Logstash: ELK(ElasticSearch Kibana)
+
+三大组件
+	Source: 收集
+	Channel: 聚集
+	Sink: 输出
+
+flume: 分布式日志收集框架
+
+# 利用flume将日志信息输出到控制台: exec-memory-logger.conf
+
+    # 定义三大组件
+    exec-memory-logger.sources = exec-source
+    exec-memory-logger.sinks = logger-sink
+    exec-memory-logger.channels = memory-channel
+
+    # 定义source
+    exec-memory-logger.sources.exec-source.type = exec
+    exec-memory-logger.sources.exec-source.command = tail -F /home/hadoop/data/project/logs/access.log
+    exec-memory-logger.sources.exec-source.shell = /bin/sh -c
+
+    # 定义channels
+    exec-memory-logger.channels.memory-channel.type = memory
+
+    # 定义sink
+    exec-memory-logger.sinks.logger-sink.type = logger
+
+    # 组装关系
+    exec-memory-logger.sources.exec-source.channels = memory-channel
+    exec-memory-logger.sinks.logger-sink.channels = memory-channel
+
+# 利用flume将日志信息输出到Kafka:
+    
+    # 定义三大组件
+	exec-memory-kafka.sources = exec-source
+	exec-memory-kafka.sinks = kafka-sink
+	exec-memory-kafka.channels = memory-channel
+
+	# 定义source
+	exec-memory-kafka.sources.exec-source.type = exec
+	exec-memory-kafka.sources.exec-source.command = tail -F /home/hadoop/data/project/logs/access.log
+	exec-memory-kafka.sources.exec-source.shell = /bin/sh -c
+
+	# 定义channels
+	exec-memory-kafka.channels.memory-channel.type = memory
+
+	# 定义sink
+	exec-memory-kafka.sinks.kafka-sink.type = org.apache.flume.sink.kafka.KafkaSink
+	exec-memory-kafka.sinks.kafka-sink.brokerList = hadoop:9092
+	exec-memory-kafka.sinks.kafka-sink.topic = streaming_topic
+	exec-memory-kafka.sinks.kafka-sink.batchSize = 5
+	exec-memory-kafka.sinks.kafka-sink.requiredAcks = 1
+
+	# 组装关系
+	exec-memory-kafka.sources.exec-source.channels = memory-channel
+	exec-memory-kafka.sinks.kafka-sink.channels = memory-channel
+
+
+# 利用Flume和Kafka, 监控某一文件夹中日志文件的增加
+
+    # 定义三大组件
+    spooldir-memory-kafka.sources = spooldir-source
+    spooldir-memory-kafka.sinks = kafka-sink
+    spooldir-memory-kafka.channels = memory-channel
+
+    # 定义source
+    spooldir-memory-kafka.sources.spooldir-source.type = spooldir
+    spooldir-memory-kafka.sources.spooldir-source.spoolDir = /home/hadoop/data/monitor_data
+    spooldir-memory-kafka.sources.spooldir-source.fileHeader = true
+
+    # 定义channels
+    spooldir-memory-kafka.channels.memory-channel.type = memory
+
+    # 定义sink
+    spooldir-memory-kafka.sinks.kafka-sink.type = org.apache.flume.sink.kafka.KafkaSink
+    spooldir-memory-kafka.sinks.kafka-sink.brokerList = hadoop01:9092
+    spooldir-memory-kafka.sinks.kafka-sink.topic = streaming_topic
+    spooldir-memory-kafka.sinks.kafka-sink.batchSize = 5
+    spooldir-memory-kafka.sinks.kafka-sink.requiredAcks = 1
+
+    # 组装关系
+    spooldir-memory-kafka.sources.spooldir-source.channels = memory-channel
+    spooldir-memory-kafka.sinks.kafka-sink.channel = memory-channel
+
+# 启动flume
+    flume-ng agent \
+    --name exec-memory-logger \
+    --conf $FLUME_HOME/conf \
+    --conf-file /home/hadoop/data/project/streaming_project.conf \
+    -Dflume.root.logger=INFO,console
