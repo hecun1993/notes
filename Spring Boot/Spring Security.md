@@ -345,15 +345,95 @@ return this.getAuthenticationManager().authenticate(usernamePasswordAuthenticati
 2. 借助外部存储redis实现的token机制, 但要依赖外部redis, 可以实现单点登录
 3. 借助JWT, 将用户信息直接存在JWT中, 避免对外部存储设备redis的依赖
 
-#### JWT (引入java-jwt的依赖)
+#### JWT的组成 (引入java-jwt的依赖)
 
-- Header
-- PayLoad
-- Signature
+skxal1231@!.sdjai02321@!.sdjaioxmsioadjoa#$
+
+- Header JWT的类型(JWT类型 + 编码格式, 然后用Base64加密)
+- PayLoad JWT的相关信息, 比如过期时间, 唯一标识, 服务器信息等, 构成的Json对象, 然后再进行Base64加密
+- Signature 随机码加上前两部分的字符串
 
 > JWT的缺陷, 一开始创建时就定死了有效期, 但用户的登出是随机的, 所以还是需要借助redis, 修改其有效时间
 
-#### 示例
+#### 示例一
+
+1. 设计一个服务端的/auth接口, 用来让客户端向服务端申请钥匙 (将来是放在Header中, 如下)
+
+   ```properties
+   Authorization: Bearer skxal1231@!.sdjai02321@!.sdjaioxmsioadjoa#$
+   ```
+
+   获得的钥匙如下
+
+   ```json
+   {
+       randomKey: "csahi79",
+       token: "skxal1231@!.sdjai02321@!.sdjaioxmsioadjoa#$"
+   }
+   // 上面的token就是服务端给客户端的钥匙(客户端一般都是app)
+   // randomKey是盐/随机字符串, 用来签名
+   ```
+
+2. 模拟客户端的操作
+
+   ```java
+   package com.stylefeng.guns.jwt;
+
+   import com.alibaba.fastjson.JSON;
+   import com.stylefeng.guns.core.util.MD5Util;
+   import com.stylefeng.guns.rest.common.SimpleObject;
+   import com.stylefeng.guns.rest.modular.auth.converter.BaseTransferEntity;
+   import com.stylefeng.guns.rest.modular.auth.security.impl.Base64SecurityAction;
+
+   /**
+    * jwt测试
+    */
+   public class DecryptTest {
+
+       public static void main(String[] args) {
+
+           String key = "mySecret";
+   		// 就是第一步中的token
+           String compactJws = "eyJhbGciOiJIUzUxMiJ9.eyJyYW5kb21LZXkiOiJxczV4ZjciLCJzdWIiOiJhZG1pbiIsImV4cCI6MTUwNjM0Mzk4NywiaWF0IjoxNTA1NzM5MTg3fQ.N5_npknF-w_pq_3bi-cRp0HkjQqOVlK_dTh5QPIDYcWYCujp4uQ5-QrHDB86azHhsNKVgwpvh1_0ZkxmmEFsEQ";
+           // 就是第一步中的randomKey
+           String salt = "qs5xf7";
+
+           // 执行业务逻辑, 比如插入一条数据, SimpleObject就是这条数据实体
+           SimpleObject simpleObject = new SimpleObject();
+           simpleObject.setUser("stylefeng");
+           simpleObject.setAge(12);
+           simpleObject.setName("ffff");
+           simpleObject.setTips("code");
+
+           // 把数据实体转成Json字符串
+           String jsonString = JSON.toJSONString(simpleObject);
+           // 然后进行Base64和md5加密, 得到新的加密后的字符串
+           String encode = new Base64SecurityAction().doAction(jsonString);
+           String md5 = MD5Util.encrypt(encode + salt);
+
+           // 把上一步得到的字符串封装在一个实体类中
+           // 这个实体类将来在请求服务端的业务接口(新增数据接口)时, 会让在body中
+           // body中的请求参数包含 两个部分
+           // 1. 插入的数据的本身(经过base64加密后的字符串) 
+           // 2. 签名(经过base64加密后的字符串 + 盐(randomKey))
+           // 然后请求服务端的真正业务接口, 就可以正常的返回数据了.
+           BaseTransferEntity baseTransferEntity = new BaseTransferEntity();
+           baseTransferEntity.setObject(encode);
+           baseTransferEntity.setSign(md5);
+
+           System.out.println(JSON.toJSONString(baseTransferEntity));
+
+           //System.out.println("body = " + Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getBody());
+           //System.out.println("header = " + Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getHeader());
+           //System.out.println("signature = " + Jwts.parser().setSigningKey(key).parseClaimsJws(compactJws).getSignature());
+       }
+   }
+
+   ```
+
+   ​
+
+#### 示例二
 
 ##### JwtHelper
 
