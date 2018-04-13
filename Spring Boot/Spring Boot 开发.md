@@ -69,52 +69,6 @@ public class SnackScopeAspect {
 
 
 
-### 缓存
-
-### 先查缓存再查数据库
-
-```java
-//直接引入spring-redis依赖即可, 不用做java配置, 可以添加properties中的连接池配置
-
-@Autowired
-private StringRedisTemplate redisTemplate;
-
-/**
-     * 1.首先通过缓存获取
-     * 2.不存在将从通过数据库获取用户对象
-     * 3.将用户对象写入缓存，设置缓存时间5分钟
-     * 4.返回对象
-     *
-     * @param id
-     * @return
- */
-public User getUserById(Long id) {
-    String key = "user:" + id;
-    String json = redisTemplate.opsForValue().get(key);
-    User user = null;
-    if (Strings.isNullOrEmpty(json)) {
-        user = userMapper.selectById(id);
-        String string = JSON.toJSONString(user);
-        redisTemplate.opsForValue().set(key, string);
-        redisTemplate.expire(key, 5, TimeUnit.MINUTES);
-    } else {
-        user = JSON.parseObject(json, User.class);
-    }
-    return user;
-}
-```
-
-```properties
-# spring为redis提供了默认的连接池
-# 定义最大连接数
-spring.redis.pool.max-active=3
-spring.redis.host=localhost
-spring.redis.port=6379
-spring.redis.timeout=6000
-```
-
-
-
 ### 自定义Bean验证
 
 #### MyConstraint

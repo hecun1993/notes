@@ -13,8 +13,6 @@
 
 
 
-
-
 ### 请求处理流程
 
 - 请求A到Tomcat容器后, Tomcat会解析HTTP协议. 
@@ -272,7 +270,7 @@ yum install -y httpd-tools
 
 - session依然存在各自的tomcat中, 这个集群只是做了数据一致性的保障, 通过session的数据比较, 来确定session的数据是否存在不同, 如果有不同, 则会做session的迁移.
 - session的比较耗时增加; 网络传输的session复制会降低服务器效率
-- 但配置方便.
+- 优点是: 配置方便.
 
 ##### 搭建方式
 

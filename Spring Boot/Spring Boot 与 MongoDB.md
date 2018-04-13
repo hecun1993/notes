@@ -37,9 +37,7 @@ mongoTemplate.updateFirst(query, update, UserEntity.class);
 mongoTemplate.updateMulti(query, update, UserEntity.class);
 ```
 
-> ```
-> MongoDB中存储的是标准时间，而通过System.currentTimeMillis()获得的是当前时区的时间，快8个小时.
-> ```
+> MongoDB中存储的是标准时间，而通过System.currentTimeMillis()获得的是当前时区的时间，前者比后者快8个小时.
 
 
 

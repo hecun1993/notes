@@ -15,6 +15,7 @@ Redis是单线程的, 不适合保存内容大的数据。
 所有的内存服务器是没有事务支持的. 但redis的单进程可以帮助我们完成类似事务的功能, 保障一组操作是按照顺去执行.
 
 Memcached只支持一种数据类型: key-value
+
 redis可以支持六种数据类型(多了一种地图坐标)
 
 redis加Lua可以实现类似存储过程的功能, 可以减少网络IO
@@ -33,9 +34,11 @@ redis加Lua可以实现类似存储过程的功能, 可以减少网络IO
 
 #### make
 
-#### make install PREFIX=/opt/install/redis
+#### make install PREFIX=/opt/install/redis 指定安装目录
 
-#### cd src
+#### cd /opt/install/redis/bin
+
+#### cp /opt/software/redis/redis.conf /opt/install/redis 复制配置文件到启动目录
 
 #### 启动 nohup redis-server &
 
@@ -115,8 +118,8 @@ flushdb 清除redis数据库
 Key的命令: 
 
 * expire key second	(设置key的过期时间)
-* ttl key 			(查看key的有效期)
-* persist key 		(清除key的过期时间，key持久化)
+	 ttl key 			(查看key的有效期)
+	 persist key 		(清除key的过期时间，key持久化)
 
  monitor 监听redis的日志命令
 

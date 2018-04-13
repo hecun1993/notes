@@ -6,7 +6,7 @@
 
 在一般标准的操作系统教材里，会用下面的方式来演示 LRU 原理，假设内存只能容纳3个页大小，按照 7 0 1 2 0 3 0 4 的次序访问页。假设内存按照栈的方式来描述访问时间，在上面的，是最近访问的，在下面的是，最远时间访问的，LRU就是这样工作的。
 
-![img](https://raw.githubusercontent.com/hecun1993/markdown-images/master/lru01.jpg)
+![img](images/lru01.jpg)
 
 但是如果让我们自己设计一个基于 LRU 的缓存，这样设计可能问题很多，**这段内存按照访问时间进行了排序，会有大量的内存拷贝操作，所以性能肯定是不能接受的。**
 
@@ -16,11 +16,11 @@
 
 整体的设计思路是，可以使用 HashMap 存储 key，这样可以做到 save 和 get key的时间都是 O(1)，而 HashMap 的 Value 记录**需要缓存数据在 LRU 存储中的槽。**
 
-![img](https://raw.githubusercontent.com/hecun1993/markdown-images/master/lru02.jpg)
+![img](images/lru02.jpg)
 
 而 LRU 存储是基于双向链表实现的，下面的图演示了它的原理。其中 h 代表双向链表的表头，t 代表尾部。如果存储满了，可以通过 O(1) 的时间淘汰掉双向链表的尾部，并更新队头。
 
-![img](https://raw.githubusercontent.com/hecun1993/markdown-images/master/lru03.jpg)
+![img](images/lru03.jpg)
 
 下面总结一下核心操作的步骤:
 
